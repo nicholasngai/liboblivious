@@ -57,4 +57,4 @@ void *o_memcpy(void *dest, const void *src, size_t n, bool cond);
 void *o_memset(void *dest, unsigned char src, size_t n, bool cond);
 void o_memswap(void *a, void *b, size_t n, bool cond);
 
-#endif /* liboblivious/o_swap.h */
+#endif /* liboblivious/primitives.h */
