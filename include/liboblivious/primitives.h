@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 static inline void o_set8(uint8_t *dest, uint8_t src, bool cond) {
     uint8_t mask = ~((uint8_t) cond - 1);
@@ -51,5 +52,9 @@ static inline void o_swap64(uint64_t *a, uint64_t *b, bool cond) {
     *b ^= *a & mask;
     *a ^= *b;
 }
+
+void *o_memcpy(void *dest, const void *src, size_t n, bool cond);
+void *o_memset(void *dest, unsigned char src, size_t n, bool cond);
+void o_memswap(void *a, void *b, size_t n, bool cond);
 
 #endif /* liboblivious/o_swap.h */
