@@ -2,8 +2,8 @@
 #define __LIBOBLIVIOUS_OSWAP_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 static inline void o_set8(uint8_t *dest, uint8_t src, bool cond) {
     uint8_t mask = ~((uint8_t) cond - 1);
