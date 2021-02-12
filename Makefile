@@ -2,8 +2,8 @@ TARGET = liboblivious.so
 OBJS = primitives.o
 DEPS = $(OBJS:.o=.d)
 
-CPPFLAGS = -MMD
-CFLAGS = -Iinclude -Wall -Wextra
+CPPFLAGS = -MMD -Iinclude
+CFLAGS = -O3 -Wall -Wextra
 LDFLAGS = -shared
 
 .PHONY: all
