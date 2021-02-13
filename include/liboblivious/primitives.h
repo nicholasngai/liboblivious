@@ -5,24 +5,34 @@
 #include <stddef.h>
 #include <stdint.h>
 
+static inline void o_setbool(bool *dest, bool src, bool cond) {
+    *dest = *dest != (src != *dest && cond);
+}
+
 static inline void o_set8(uint8_t *dest, uint8_t src, bool cond) {
     uint8_t mask = ~((uint8_t) cond - 1);
-    *dest = (src ^ *dest) & mask;
+    *dest ^= (src ^ *dest) & mask;
 }
 
 static inline void o_set16(uint16_t *dest, uint16_t src, bool cond) {
     uint16_t mask = ~((uint16_t) cond - 1);
-    *dest = (src ^ *dest) & mask;
+    *dest ^= (src ^ *dest) & mask;
 }
 
 static inline void o_set32(uint32_t *dest, uint32_t src, bool cond) {
     uint32_t mask = ~((uint32_t) cond - 1);
-    *dest = (src ^ *dest) & mask;
+    *dest ^= (src ^ *dest) & mask;
 }
 
 static inline void o_set64(uint64_t *dest, uint64_t src, bool cond) {
     uint64_t mask = ~((uint64_t) cond - 1);
-    *dest = (src ^ *dest) & mask;
+    *dest ^= (src ^ *dest) & mask;
+}
+
+static inline void o_swapbool(bool *a, bool *b, bool cond) {
+    *a = *a != (*a != *b);
+    *b = *b != (*a != *b && cond);
+    *a = *a != (*a != *b);
 }
 
 static inline void o_swap8(uint8_t *a, uint8_t *b, bool cond) {
@@ -51,6 +61,13 @@ static inline void o_swap64(uint64_t *a, uint64_t *b, bool cond) {
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
+}
+
+static inline void o_accessbool(bool *readp, bool *writep, bool write,
+        bool cond) {
+    bool xor = *readp != *writep;
+    *readp = *readp != (xor && !write && cond);
+    *writep = *writep != (xor && write && cond);
 }
 
 static inline void o_access8(uint8_t *readp, uint8_t *writep, bool write,
