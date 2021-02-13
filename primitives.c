@@ -98,3 +98,33 @@ void o_memswap(void *a, void *b, size_t n, bool cond) {
         b += sizeof(uint8_t);
     }
 }
+
+void o_memaccess(void *readp, void *writep, size_t n, bool write, bool cond) {
+    while (n >= sizeof(uint64_t)) {
+        o_access64((uint64_t *) readp, (uint64_t *) writep, write, cond);
+        n -= sizeof(uint64_t);
+        readp += sizeof(uint64_t);
+        writep += sizeof(uint64_t);
+    }
+
+    while (n >= sizeof(uint32_t)) {
+        o_access32((uint32_t *) readp, (uint32_t *) writep, write, cond);
+        n -= sizeof(uint32_t);
+        readp += sizeof(uint32_t);
+        writep += sizeof(uint32_t);
+    }
+
+    while (n >= sizeof(uint16_t)) {
+        o_access16((uint16_t *) readp, (uint16_t *) writep, write, cond);
+        n -= sizeof(uint16_t);
+        readp += sizeof(uint16_t);
+        writep += sizeof(uint16_t);
+    }
+
+    while (n >= sizeof(uint8_t)) {
+        o_access8((uint8_t *) readp, (uint8_t *) writep, write, cond);
+        n -= sizeof(uint8_t);
+        readp += sizeof(uint8_t);
+        writep += sizeof(uint8_t);
+    }
+}
