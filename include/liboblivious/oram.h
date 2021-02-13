@@ -6,11 +6,12 @@
 #include <stdint.h>
 
 #define ORAM_BLOCKS_PER_BUCKET 4
+#define ORAM_BLOCK_SIZE 4096
 
 struct oram_block {
     bool valid;
     uint64_t id;
-    unsigned char data[4096];
+    unsigned char data[ORAM_BLOCK_SIZE];
 };
 
 struct oram_bucket {
@@ -26,5 +27,8 @@ typedef struct oram {
 
 int oram_init(oram_t *oram, size_t num_blocks, size_t stash_size);
 void oram_destroy(oram_t *oram);
+
+int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
+        bool write);
 
 #endif /* liboblivious/oram.h */
