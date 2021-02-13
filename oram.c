@@ -59,33 +59,44 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
      * write if the block was not found. */
 
     size_t leaf_idx_plus_one = leaf_id + (1u << oram->depth);
-    size_t stash_idx = oram->stash_size - 2 - oram->depth;
+    size_t stash_idx =
+        oram->stash_size - 2 - oram->depth * ORAM_BLOCKS_PER_BUCKET;
 
     if (oram->stash[stash_idx].valid) {
         /* Obliviousness violation - stash overflowed. */
         goto exit;
     }
-
-    bool accessed = false;
     while (leaf_idx_plus_one) {
+        /* Copy block to stash. */
         memcpy(&oram->stash[stash_idx],
-                &oram->buckets->blocks[leaf_idx_plus_one - 1],
+                &oram->buckets[leaf_idx_plus_one - 1].blocks,
                 sizeof(struct oram_block));
 
-        bool cond = oram->stash[stash_idx].id == block_id
-            && oram->stash[stash_idx].valid;
-        accessed = accessed || cond;
-        o_memaccess(data, &oram->stash[stash_idx].data, ORAM_BLOCK_SIZE, write,
-                cond);
+        for (size_t i = 0; i < ORAM_BLOCKS_PER_BUCKET; i++) {
+            /* Invalidate block that we copied. */
+            oram->buckets[leaf_idx_plus_one - 1].blocks[i].valid = false;
+            /* Track the leaf ID in the stash. */
+            oram->stash[stash_idx + i].leaf_id = leaf_id;
+        }
 
         leaf_idx_plus_one >>= 1;
-        stash_idx++;
+        stash_idx += ORAM_BLOCKS_PER_BUCKET;
+    }
+
+    /* Obliviously scan through the stash and access the block. The last
+     * position should be a dummy if we have reached this point, so we skip it
+     * and access it after this loop.  */
+    bool accessed = false;
+    for (size_t i = 0; i < oram->stash_size - 1; i++) {
+        bool cond = oram->stash[i].id == block_id && oram->stash[i].valid;
+        accessed = accessed || cond;
+        o_memaccess(data, &oram->stash[i].data, ORAM_BLOCK_SIZE, write, cond);
     }
 
     /* Write to the final position in the stash iff this is a write and the
-     * block was not found, meaning this is a new block ID.  assignments don't
-     * need to be conditional because the end of the stash will always be
-     * invalid (dummy). */
+     * desired block was not accessed, meaning this is a new block ID.
+     * Assignments don't need to be conditional because the end of the stash
+     * will always be invalid (dummy). */
     bool dummy = write && !accessed;
     oram->stash[oram->stash_size - 1].valid = dummy;
     oram->stash[oram->stash_size - 1].id = block_id;
