@@ -1,5 +1,5 @@
 TARGET = liboblivious.so
-OBJS = oram.o primitives.o
+OBJS = algorithms.o oram.o primitives.o
 DEPS = $(OBJS:.o=.d)
 
 CPPFLAGS = -MMD -Iinclude
