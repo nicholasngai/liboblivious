@@ -50,6 +50,8 @@ void oram_destroy(oram_t *oram) {
 
 int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         bool write, uint64_t *new_leaf_id, uint64_t rand) {
+    size_t bucket_fullness[oram->depth];
+
     if (leaf_id >= 1u << (oram->depth - 1)) {
         /* Obliviousness violation - invalid leaf ID. */
         goto exit;
@@ -73,17 +75,15 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
 
     for (size_t bucket_idx_plus_one = leaf_idx_plus_one; bucket_idx_plus_one;
             bucket_idx_plus_one >>= 1) {
-        /* Copy block to stash. */
-        memcpy(&oram->stash[stash_idx],
-                &oram->buckets[bucket_idx_plus_one - 1].blocks,
-                sizeof(struct oram_block));
-
         for (size_t i = 0; i < ORAM_BLOCKS_PER_BUCKET; i++) {
-            /* Invalidate block that we copied. */
+            /* Copy block to stash. */
+            memcpy(&oram->stash[stash_idx].block,
+                    &oram->buckets[bucket_idx_plus_one - 1].blocks[i],
+                    sizeof(struct oram_block));
+            /* Invalidate it in the tree. */
             oram->buckets[bucket_idx_plus_one - 1].blocks[i].valid = false;
+            stash_idx++;
         }
-
-        stash_idx += ORAM_BLOCKS_PER_BUCKET;
     }
 
     /* Obliviously scan through the stash and access the block. The last
@@ -120,36 +120,67 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
 
     /* Assign all blocks in the stash to the deepest bucket index possible.
      * Dummy blocks get the max bucket value to get sorted to the end. We stop
-     * before the last (oram->depth * ORAM_BLOCKS_PER_BUCKET) positions path
+     * before the last (oram->depth * ORAM_BLOCKS_PER_BUCKET) positions, for
      * dummy padding. */
+    memset(bucket_fullness, '\0', sizeof(bucket_fullness));
     for (size_t i = 0;
             i < oram->stash_size - oram->depth * ORAM_BLOCKS_PER_BUCKET; i++) {
-        bool assigned = false;
+        bool assigned = !oram->stash[i].block.valid;
+        oram->stash[i].bucket_idx_plus_one = 0;
         uint64_t curr_idx_plus_one = oram->stash[i].block.leaf_idx_plus_one;
         uint64_t bucket_idx_plus_one = leaf_idx_plus_one;
+        size_t bufu_idx = 0;
         while (bucket_idx_plus_one) {
-            bool cond = !assigned & (bucket_idx_plus_one == curr_idx_plus_one);
+            bool cond = !assigned & (bucket_idx_plus_one == curr_idx_plus_one)
+                & (bucket_fullness[bufu_idx] < ORAM_BLOCKS_PER_BUCKET);
             o_set64(&oram->stash[i].bucket_idx_plus_one, bucket_idx_plus_one,
+                    cond);
+            o_set64(&bucket_fullness[bufu_idx], bucket_fullness[bufu_idx] + 1,
                     cond);
             curr_idx_plus_one >>= 1;
             bucket_idx_plus_one >>= 1;
+            bufu_idx++;
         }
-        o_set64(&oram->stash[i].bucket_idx_plus_one, UINT64_MAX,
-                !oram->stash[i].block.valid);
     }
 
-    /* Pad the stash with (oram->depth * ORAM_BLOCKS_PER_BUCKET) blocks, with
-     * ORAM_BLOCKS_PER_BUCKET blocks assigned to each depth. */
+    /* Pad the stash with (oram->depth * ORAM_BLOCKS_PER_BUCKET) dummy blocks,
+     * with an assigned bucket index if needed and an invalid value if not,
+     * based on the bucket fullness. */
+    size_t bufu_idx = 0;
     for (size_t bucket_idx_plus_one = leaf_idx_plus_one; bucket_idx_plus_one;
             bucket_idx_plus_one >>= 1) {
         for (size_t i = 0; i < ORAM_BLOCKS_PER_BUCKET; i++) {
-            oram->stash[stash_idx].bucket_idx_plus_one = bucket_idx_plus_one;
+            bool cond = bucket_fullness[bufu_idx] + i < ORAM_BLOCKS_PER_BUCKET;
+            oram->stash[stash_idx].bucket_idx_plus_one = 0;
+            o_set64(&oram->stash[stash_idx].bucket_idx_plus_one,
+                    bucket_idx_plus_one, cond);
+            stash_idx++;
+        }
+        bufu_idx++;
+    }
+
+    /* Sort blocks from highest to lowest bucket index, with 0 (invalid) at the
+     * end. At this point, each valid index has exactly ORAM_BLOCKS_PER_BUCKET
+     * blocks. */
+    o_sort(oram->stash, oram->stash_size, sizeof(struct oram_stash_block),
+            stash_comparator);
+
+    /* The first oram->depth * ORAM_BLOCKS_PER_BUCKET of the stash now contains
+     * the blocks to evict back to the path, so we write them back,
+     * invalidating them in the stash. */
+    stash_idx = 0;
+    for (size_t bucket_idx_plus_one = leaf_idx_plus_one; bucket_idx_plus_one;
+            bucket_idx_plus_one >>= 1) {
+        for (size_t i = 0; i < ORAM_BLOCKS_PER_BUCKET; i++) {
+            /* Copy block to stash. */
+            memcpy(&oram->buckets[bucket_idx_plus_one - 1].blocks[i],
+                    &oram->stash[stash_idx].block,
+                    sizeof(struct oram_block));
+            /* Invalidate it in the stash. */
+            oram->stash[stash_idx].block.valid = false;
             stash_idx++;
         }
     }
-
-    o_sort(oram->stash, oram->stash_size, sizeof(struct oram_stash_block),
-            stash_comparator);
 
     return !accessed;
 
@@ -157,22 +188,14 @@ exit:
     return -1;
 }
 
+/* Comparator to sort blocks from highest to lowest bucket index. */
 static int stash_comparator(void *a_, void *b_) {
-    int comp = 0;
-
     struct oram_stash_block *a = a_;
     struct oram_stash_block *b = b_;
 
-    /* If A > B, this adds 1 + (1 - 1) == 1.
-     * If A < B, this adds 0 + (0 - 1) == -1.
+    /* If A < B, this adds 1 + (1 - 1) == 1.
+     * If A > B, this adds 0 + (0 - 1) == -1.
      * If A == B, this adds 0 + (1 - 1) == 0. */
-    comp += (int) (a->bucket_idx_plus_one > b->bucket_idx_plus_one)
-        + ((int) (a->bucket_idx_plus_one >= b->bucket_idx_plus_one) - 1);
-
-    comp *= 4;
-
-    /* If A is dummy, and B is not dummy, this adds 1. */
-    comp += !a->block.valid & b->block.valid;
-
-    return comp;
+    return (int) (a->bucket_idx_plus_one < b->bucket_idx_plus_one)
+        + ((int) (a->bucket_idx_plus_one <= b->bucket_idx_plus_one) - 1);
 }
