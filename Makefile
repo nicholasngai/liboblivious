@@ -1,4 +1,5 @@
-TARGET = liboblivious.so
+TARGET_SO = liboblivious.so
+TARGET_AR = liboblivious.a
 OBJS = algorithms.o oram.o primitives.o
 DEPS = $(OBJS:.o=.d)
 
@@ -7,13 +8,16 @@ CFLAGS = -O3 -Wall -Wextra
 LDFLAGS = -shared
 
 .PHONY: all
-all: $(TARGET)
+all: $(TARGET_SO) $(TARGET_AR)
 
-$(TARGET): $(OBJS)
+$(TARGET_SO): $(OBJS)
 	$(CC) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+$(TARGET_AR): $(OBJS)
+	$(AR) rcs $@ $^
 
 .PHONY: clean
 clean:
-	rm -rf $(TARGET) $(OBJS) $(DEPS)
+	rm -rf $(TARGET_SO) $(TARGET_AR) $(OBJS) $(DEPS)
 
 -include $(DEPS)

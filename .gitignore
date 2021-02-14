@@ -1,6 +1,7 @@
 # Build output.
 *.o
 *.so
+*.a
 *.d
 
 # Compilation database.
