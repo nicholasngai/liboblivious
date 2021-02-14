@@ -98,24 +98,24 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
             i++) {
         /* Access the block and set its new leaf if it was requested. */
         bool cond =
-            oram->stash[i].block.id == block_id && oram->stash[i].block.valid;
+            (oram->stash[i].block.id == block_id) & oram->stash[i].block.valid;
         o_set64(&oram->stash[i].block.leaf_idx_plus_one, new_leaf_idx_plus_one,
                 cond);
         o_memaccess(data, &oram->stash[i].block.data, ORAM_BLOCK_SIZE, write,
                 cond);
-        accessed = accessed || cond;
+        accessed |= cond;
     }
 
     /* Write to the next position in the stash iff this is a write and the
      * desired block was not accessed, meaning this is a new block ID.
      * Assignments don't need to be conditional because the end of the stash
      * will always be invalid (dummy). */
-    bool cond = write && !accessed;
+    bool cond = write & !accessed;
     oram->stash[stash_idx].block.valid = cond;
     oram->stash[stash_idx].block.id = block_id;
     oram->stash[stash_idx].block.leaf_idx_plus_one = new_leaf_idx_plus_one;
     memcpy(&oram->stash[stash_idx].block.data, data, ORAM_BLOCK_SIZE);
-    accessed = accessed || cond;
+    accessed |= cond;
     stash_idx++;
 
     /* Assign all blocks in the stash to the deepest bucket index possible.
@@ -128,7 +128,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         uint64_t curr_idx_plus_one = oram->stash[i].block.leaf_idx_plus_one;
         uint64_t bucket_idx_plus_one = leaf_idx_plus_one;
         while (bucket_idx_plus_one) {
-            bool cond = !assigned && bucket_idx_plus_one == curr_idx_plus_one;
+            bool cond = !assigned & (bucket_idx_plus_one == curr_idx_plus_one);
             o_set64(&oram->stash[i].bucket_idx_plus_one, bucket_idx_plus_one,
                     cond);
             curr_idx_plus_one >>= 1;
@@ -148,7 +148,6 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         }
     }
 
-    // TODO Write back to the path.
     o_sort(oram->stash, oram->stash_size, sizeof(struct oram_stash_block),
             stash_comparator);
 
@@ -173,7 +172,7 @@ static int stash_comparator(void *a_, void *b_) {
     comp *= 4;
 
     /* If A is dummy, and B is not dummy, this adds 1. */
-    comp += !a->block.valid && b->block.valid;
+    comp += !a->block.valid & b->block.valid;
 
     return comp;
 }

@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 static inline void o_setbool(bool *dest, bool src, bool cond) {
-    *dest = *dest != (src != *dest && cond);
+    *dest = *dest != ((src != *dest) & cond);
 }
 
 static inline void o_set8(uint8_t *dest, uint8_t src, bool cond) {
@@ -31,7 +31,7 @@ static inline void o_set64(uint64_t *dest, uint64_t src, bool cond) {
 
 static inline void o_swapbool(bool *a, bool *b, bool cond) {
     *a = *a != (*a != *b);
-    *b = *b != (*a != *b && cond);
+    *b = *b != ((*a != *b) & cond);
     *a = *a != (*a != *b);
 }
 
@@ -66,8 +66,8 @@ static inline void o_swap64(uint64_t *a, uint64_t *b, bool cond) {
 static inline void o_accessbool(bool *readp, bool *writep, bool write,
         bool cond) {
     bool xor = *readp != *writep;
-    *readp = *readp != (xor && !write && cond);
-    *writep = *writep != (xor && write && cond);
+    *readp = *readp != (xor & !write & cond);
+    *writep = *writep != (xor & write & cond);
 }
 
 static inline void o_access8(uint8_t *readp, uint8_t *writep, bool write,
