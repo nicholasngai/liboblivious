@@ -3,6 +3,7 @@
 *.so
 *.a
 *.d
+test/test
 
 # Compilation database.
 .clangd/
