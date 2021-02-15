@@ -196,6 +196,13 @@ static int stash_comparator(void *a_, void *b_) {
     /* If A < B, this adds 1 + (1 - 1) == 1.
      * If A > B, this adds 0 + (0 - 1) == -1.
      * If A == B, this adds 0 + (1 - 1) == 0. */
-    return (int) (a->bucket_idx_plus_one < b->bucket_idx_plus_one)
+    int comp = (int) (a->bucket_idx_plus_one < b->bucket_idx_plus_one)
         + ((int) (a->bucket_idx_plus_one <= b->bucket_idx_plus_one) - 1);
+
+    comp <<= 2;
+
+    /* If A is dummy and B is not, this adds 1. */
+    comp += !a->block.valid & b->block.valid;
+
+    return comp;
 }
