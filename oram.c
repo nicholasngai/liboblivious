@@ -136,6 +136,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
                     cond);
             o_set64(&bucket_fullness[bufu_idx], bucket_fullness[bufu_idx] + 1,
                     cond);
+            assigned |= cond;
             curr_idx_plus_one >>= 1;
             bucket_idx_plus_one >>= 1;
             bufu_idx++;
