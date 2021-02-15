@@ -77,9 +77,8 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
             bucket_idx_plus_one >>= 1) {
         for (size_t i = 0; i < ORAM_BLOCKS_PER_BUCKET; i++) {
             /* Copy block to stash. */
-            memcpy(&oram->stash[stash_idx].block,
-                    &oram->buckets[bucket_idx_plus_one - 1].blocks[i],
-                    sizeof(struct oram_block));
+            oram->stash[stash_idx].block =
+                oram->buckets[bucket_idx_plus_one - 1].blocks[i];
             /* Invalidate it in the tree. */
             oram->buckets[bucket_idx_plus_one - 1].blocks[i].valid = false;
             stash_idx++;
@@ -173,9 +172,8 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
             bucket_idx_plus_one >>= 1) {
         for (size_t i = 0; i < ORAM_BLOCKS_PER_BUCKET; i++) {
             /* Copy block to stash. */
-            memcpy(&oram->buckets[bucket_idx_plus_one - 1].blocks[i],
-                    &oram->stash[stash_idx].block,
-                    sizeof(struct oram_block));
+            oram->buckets[bucket_idx_plus_one - 1].blocks[i] =
+                oram->stash[stash_idx].block;
             /* Invalidate it in the stash. */
             oram->stash[stash_idx].block.valid = false;
             stash_idx++;
