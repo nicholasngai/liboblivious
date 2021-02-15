@@ -2,13 +2,19 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define ORAM_BLOCK_SIZE 4096
+#define ORAM_BLOCKS_PER_BUCKET 4
+#define ORAM_NUM_BLOCKS 1024
+#define ORAM_STASH_SIZE 256
+
 char *test_oram(void) {
     oram_t oram;
     uint64_t next_leaf_id;
     unsigned char *data;
     char *ret = NULL;
 
-    if (oram_init(&oram, 1024, 256)) {
+    if (oram_init(&oram, ORAM_BLOCK_SIZE, ORAM_BLOCKS_PER_BUCKET,
+                ORAM_NUM_BLOCKS, ORAM_STASH_SIZE)) {
         ret = "Init ORAM";
         goto exit;
     }
