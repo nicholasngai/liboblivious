@@ -32,6 +32,6 @@ int oram_init(oram_t *oram, size_t block_size, size_t blocks_per_bucket,
 void oram_destroy(oram_t *oram);
 
 int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
-        bool write, uint64_t *new_leaf_id, uint64_t rand);
+        bool write, uint64_t *new_leaf_id, uint64_t (*rand_func)(void));
 
 #endif /* liboblivious/oram.h */

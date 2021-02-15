@@ -59,7 +59,7 @@ void oram_destroy(oram_t *oram) {
 }
 
 int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
-        bool write, uint64_t *new_leaf_id, uint64_t rand) {
+        bool write, uint64_t *new_leaf_id, uint64_t (*rand_func)(void)) {
     size_t bucket_fullness[oram->depth];
 
     if (leaf_id >= 1u << (oram->depth - 1)) {
@@ -100,7 +100,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
      * (oram->depth * oram->blocks_per_bucket - 1) positions should be a
      * dummies if we have reached this point, so we skip it.  The accessed
      * block gets assigned the new leaf. */
-    *new_leaf_id = rand % (1u << (oram->depth - 1));
+    *new_leaf_id = rand_func() % (1u << (oram->depth - 1));
     size_t new_leaf_idx_plus_one = *new_leaf_id + (1u << (oram->depth - 1));
     bool accessed = false;
     for (size_t i = 0;
