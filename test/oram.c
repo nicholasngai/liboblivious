@@ -1,14 +1,13 @@
 #include "oram.h"
-#include "liboblivious/oram.h"
 #include <string.h>
 #include <stdlib.h>
+#include "liboblivious/oram.h"
+#include "common.h"
 
 #define ORAM_BLOCK_SIZE 4096
 #define ORAM_BLOCKS_PER_BUCKET 4
 #define ORAM_NUM_BLOCKS 1024
 #define ORAM_STASH_SIZE 256
-
-static uint64_t get_random(void);
 
 char *test_oram(void) {
     oram_t oram;
@@ -72,9 +71,4 @@ exit_destroy_oram:
     oram_destroy(&oram);
 exit:
     return ret;
-}
-
-/* Obviously, this is not secure, but it is sufficient for testing purposes. */
-static  uint64_t get_random(void) {
-    return ((uint64_t) rand() << 32) | rand();
 }

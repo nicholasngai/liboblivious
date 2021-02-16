@@ -1,6 +1,6 @@
 TARGET_SO = liboblivious.so
 TARGET_AR = liboblivious.a
-OBJS = algorithms.o oram.o primitives.o
+OBJS = algorithms.o opagetable.o oram.o primitives.o
 DEPS = $(OBJS:.o=.d)
 
 CPPFLAGS = -MMD -Iinclude

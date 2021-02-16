@@ -1,5 +1,5 @@
 TARGET = test
-OBJS = test.o oram.o
+OBJS = test.o common.o opagetable.o oram.o
 DEPS = $(OBJS:.o=.d)
 
 CPPFLAGS = -MMD
