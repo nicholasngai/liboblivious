@@ -7,8 +7,7 @@ CPPFLAGS = -MMD -Iinclude
 CFLAGS = -O3 -Wall -Wextra
 LDFLAGS = -shared
 
-.PHONY: all
-all: $(TARGET_SO) $(TARGET_AR)
+all: $(TARGET_SO) $(TARGET_AR) FORCE
 
 $(TARGET_SO): $(OBJS)
 	$(CC) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
@@ -16,8 +15,9 @@ $(TARGET_SO): $(OBJS)
 $(TARGET_AR): $(OBJS)
 	$(AR) rcs $@ $^
 
-.PHONY: clean
-clean:
+clean: FORCE
 	rm -rf $(TARGET_SO) $(TARGET_AR) $(OBJS) $(DEPS)
+
+FORCE:
 
 -include $(DEPS)

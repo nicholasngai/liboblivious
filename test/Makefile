@@ -10,7 +10,9 @@ $(TARGET): $(OBJS) ../liboblivious.a
 ../liboblivious.a: FORCE
 	$(MAKE) -C .. liboblivious.a
 
-.PHONY: FORCE
+clean: FORCE
+	rm -rf $(TARGET) $(OBJS) $(DEPS)
+
 FORCE:
 
 -include $(DEPS)
