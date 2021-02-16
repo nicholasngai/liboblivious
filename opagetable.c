@@ -1,6 +1,7 @@
 #include "liboblivious/opagetable.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "liboblivious/oram.h"
 #include "liboblivious/primitives.h"
 
@@ -43,6 +44,8 @@ int opagetable_init(opagetable_t *opagetable, size_t num_bytes) {
         /* Obliviousness violation - out of memory. */
         goto exit_free_buffer;
     }
+
+    opagetable->next_block_id = 0;
 
     return 0;
 
@@ -87,6 +90,8 @@ exit:
 static int access_level(opagetable_t *opagetable, uint64_t addr, void *data,
         size_t size, bool write, bool *found, struct opagetable_entry *table,
         size_t num_entries, int level, uint64_t (*random_func)(void)) {
+    bool curr_level_found = *found;
+
     /* Compute the index in the table and find the table size. The if statement
      * depends only on the level, which is fixed. */
     size_t index;
@@ -99,23 +104,32 @@ static int access_level(opagetable_t *opagetable, uint64_t addr, void *data,
             & OPAGETABLE_MID_MASK;
     }
 
-    /* Oblivious scan through the table. The leaf ID is initialized to a random
-     * value for a dummy access, which remains the value if the entry is
-     * invalid. The block ID is iniitalized to 0 to appease Valgrind. */
-    struct opagetable_entry entry;
-    entry.block_id = 0;
-    entry.leaf_id = random_func() % (1u << (opagetable->oram.depth - 1));
+    /* Oblivious scan through the table. The block ID is iniitalized to the
+     * next available block ID, which will be used if this is a write. The leaf
+     * ID is initialized to a random value for a dummy access, which remains
+     * the value if the entry is invalid. */
+    struct opagetable_entry entry = {
+        .block_id = opagetable->next_block_id,
+        .leaf_id = random_func() % (1u << (opagetable->oram.depth - 1)),
+        .valid = false,
+    };
+    opagetable->next_block_id++;
     for (size_t i = 0; i < num_entries; i++) {
         bool cond = i == index;
         o_memcpy(&entry, &table[i], sizeof(entry), cond & table[i].valid);
-        o_setbool(found, false, cond & !table[i].valid);
+        o_setbool(&curr_level_found, false, cond & !table[i].valid);
     }
+    *found &= curr_level_found;
 
     /* Access the next level. The if statement depends only on the number of
-     * levels, which is fixed. */
+     * levels, which is fixed. These calls should also modify the leaf ID in
+     * the entry as part of the ORAM scheme. */
     if (level < OPAGETABLE_MID_COUNT) {
-        /* Read the page into the buffer. */
-        if (*found
+        /* Read the page table into the buffer. Start initialized to 0 in case
+         * this is a new page. */
+        memset(&opagetable->buffer[level], '\0',
+                sizeof(opagetable->buffer[level]));
+        if (!write & curr_level_found
                 & oram_access(&opagetable->oram, entry.block_id, entry.leaf_id,
                     &opagetable->buffer[level], false, &entry.leaf_id,
                     random_func)) {
@@ -123,32 +137,67 @@ static int access_level(opagetable_t *opagetable, uint64_t addr, void *data,
             return -1;
         }
 
-        return access_level(opagetable, addr, data, size, write, found,
-                opagetable->buffer[level].entries, OPAGETABLE_MID_SIZE,
-                level + 1, random_func);
+        if (access_level(opagetable, addr, data, size, write, found,
+                    opagetable->buffer[level].entries, OPAGETABLE_MID_SIZE,
+                    level + 1, random_func)) {
+            /* Obliviousness violation - access failed. */
+            goto exit;
+        }
+
+        /* Write the page table back to ORAM. Perform a dummy read if this is a
+         * read and we didn't find the address. */
+        if (!write & curr_level_found
+                & oram_access(&opagetable->oram, entry.block_id, entry.leaf_id,
+                    &opagetable->buffer[level], write | curr_level_found,
+                    &entry.leaf_id, random_func)) {
+            /* Obliviousness violation - access failed. */
+            goto exit;
+        }
     } else {
-        return access_last_level(opagetable, addr, data, size, write, found,
-                &entry, random_func);
+        if (access_last_level(opagetable, addr, data, size, write, found,
+                    &entry, random_func)) {
+            /* Obliviousness violation - access failed. */
+            goto exit;
+        }
     }
+
+    /* Set the valid bit on the entry if this was a write. */
+    o_setbool(&entry.valid, true, write);
+
+    /* Oblivious scan back through the table to update the entry. */
+    for (size_t i = 0; i < num_entries; i++) {
+        bool cond = i == index;
+        o_memcpy(&table[i], &entry, sizeof(table[i]), cond & entry.valid);
+    }
+
+    return 0;
+
+exit:
+    return -1;
 }
 
 static int access_last_level(opagetable_t *opagetable, uint64_t addr,
         void *data, size_t size, bool write, bool *found,
         struct opagetable_entry *entry, uint64_t (*random_func)(void)) {
     /* Read the page into the buffer. */
-    if (*found & oram_access(&opagetable->oram, entry->block_id, entry->leaf_id,
-            opagetable->data_buffer, false, &entry->leaf_id, random_func)) {
+    if (!write & *found
+            & oram_access(&opagetable->oram, entry->block_id, entry->leaf_id,
+                opagetable->data_buffer, false, &entry->leaf_id, random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
 
     /* Perform the memory access. */
     size_t offset = addr & OPAGETABLE_OFFSET_MASK;
-    o_memaccess(data, opagetable->data_buffer + offset, size, write, *found);
+    o_memaccess(data, opagetable->data_buffer + offset, size, write,
+            write | *found);
 
-    /* Write the page back to the buffer. */
-    if (oram_access(&opagetable->oram, entry->block_id, entry->leaf_id,
-            opagetable->data_buffer, true, &entry->leaf_id, random_func)) {
+    /* Write the page back to ORAM. Perform a dummy read if this is not a
+     * write. */
+    if (!write & *found
+            & oram_access(&opagetable->oram, entry->block_id, entry->leaf_id,
+                opagetable->data_buffer, write | *found, &entry->leaf_id,
+                random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
