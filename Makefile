@@ -7,13 +7,13 @@ CPPFLAGS = -MMD -Iinclude
 CFLAGS = -O3 -Wall -Wextra
 LDFLAGS = -shared
 
-all: $(TARGET_SO) $(TARGET_AR) FORCE
+all: FORCE $(TARGET_SO) $(TARGET_AR)
 
 $(TARGET_SO): $(OBJS)
-	$(CC) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(TARGET_SO)
 
 $(TARGET_AR): $(OBJS)
-	$(AR) rcs $@ $^
+	$(AR) rcs $(TARGET_AR) $(OBJS)
 
 clean: FORCE
 	rm -rf $(TARGET_SO) $(TARGET_AR) $(OBJS) $(DEPS)

@@ -4,11 +4,15 @@ DEPS = $(OBJS:.o=.d)
 
 CPPFLAGS = -MMD
 CFLAGS = -g -I../include
+LDLIBS = -L.. -l:liboblivious.a
 
-$(TARGET): $(OBJS) ../liboblivious.a
+all: $(TARGET)
 
-../liboblivious.a: FORCE
-	$(MAKE) -C .. liboblivious.a
+$(TARGET): .. $(OBJS)
+	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(TARGET)
+
+..: FORCE
+	$(MAKE) -C ..
 
 clean: FORCE
 	rm -rf $(TARGET) $(OBJS) $(DEPS)
