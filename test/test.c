@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "algorithms.h"
-#include "opagetable.h"
+#include "opagedmem.h"
 #include "oram.h"
 
 int main(void) {
@@ -15,9 +15,9 @@ int main(void) {
         printf("Failed oram: %s\n", err);
         return 1;
     }
-    err = test_opagetable();
+    err = test_opagedmem();
     if (err) {
-        printf("Failed opagetable: %s\n", err);
+        printf("Failed opagedmem: %s\n", err);
         return 1;
     }
     return 0;
