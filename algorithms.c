@@ -8,14 +8,11 @@ static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
 static void merge_slice(void *data, size_t n, size_t elem_size, size_t skip,
         bool right_heavy, int (*comparator)(void *a, void *b));
 
-static void *curr;
-
 void o_sort(void *data, size_t n, size_t elem_size,
         int (*comparator)(void *a, void *b)) {
     /* This is an implementation of Batcher's odd-even mergesort, with an
      * additional right-heavy flag to work for arbitrary-sized arrays, not just
      * powers of 2. */
-    curr = data;
     sort_slice(data, n, elem_size, 1, false, comparator);
 }
 
