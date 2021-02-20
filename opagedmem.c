@@ -1,5 +1,4 @@
 #include "liboblivious/opagedmem.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "liboblivious/oram.h"
@@ -124,7 +123,7 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
     /* Access the next level. The if statement depends only on the number of
      * levels, which is fixed. These calls should also modify the leaf ID in
      * the entry as part of the ORAM scheme. */
-    if (level < OPAGEDMEM_MID_COUNT) {
+    if (level < OPAGEDMEM_MID_COUNT - 1) {
         /* Read the page table into the buffer. Start initialized to 0 in case
          * this is a new page. */
         memset(&opagedmem->buffer[level], '\0',
