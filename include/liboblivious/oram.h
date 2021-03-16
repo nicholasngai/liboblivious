@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "liboblivious/internal/defs.h"
+
+LIBOBLIVIOUS_EXTERNC_BEGIN
 
 struct oram_block {
     bool valid;                 /* Whether this is a valid block. */
@@ -33,5 +36,7 @@ void oram_destroy(oram_t *oram);
 
 int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         bool write, uint64_t *new_leaf_id, uint64_t (*rand_func)(void));
+
+LIBOBLIVIOUS_EXTERNC_END
 
 #endif /* liboblivious/oram.h */

@@ -2,6 +2,7 @@
 #define __LIBOBLIVIOUS_OPAGEDMEM_H
 
 #include <stddef.h>
+#include "liboblivious/internal/defs.h"
 #include "liboblivious/oram.h"
 
 #define OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET 4
@@ -22,6 +23,8 @@
 #define OPAGEDMEM_OFFSET_MASK (OPAGEDMEM_OFFSET_SIZE - 1)
 #define OPAGEDMEM_PAGE_SIZE \
     (OPAGEDMEM_MID_SIZE * sizeof(struct opagedmem_entry))
+
+LIBOBLIVIOUS_EXTERNC_BEGIN
 
 struct opagedmem_entry {
     uint64_t block_id;
@@ -47,5 +50,7 @@ void opagedmem_destroy(opagedmem_t *opagedmem);
 
 int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
         size_t size, bool write, bool *found, uint64_t (*random_func)(void));
+
+LIBOBLIVIOUS_EXTERNC_END
 
 #endif /* liboblivious/opagedmem.h */
