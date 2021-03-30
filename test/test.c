@@ -10,6 +10,11 @@ int main(void) {
         printf("Failed sort: %s\n", err);
         return 1;
     }
+    err = test_sort_generate_swaps();
+    if (err) {
+        printf("Failed sort_generate_swaps: %s\n", err);
+        return 1;
+    }
     err = test_oram();
     if (err) {
         printf("Failed oram: %s\n", err);

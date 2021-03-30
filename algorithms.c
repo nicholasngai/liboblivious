@@ -1,6 +1,8 @@
 #include "liboblivious/algorithms.h"
 #include "liboblivious/primitives.h"
 
+/* Sorting. */
+
 static void sort_swap(void *a, void *b, size_t elem_size,
         int (*comparator)(void *a, void *b));
 static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
@@ -87,11 +89,82 @@ static void merge_slice(void *data, size_t n, size_t elem_size, size_t skip,
              * The short-circuit operator is deterministic. Taking this mod 2
              * and then inverting it by subtracting it from 1 gives the
              * starting index. */
-            for (size_t i = 1 - (n / 2 + (n % 2 == 1 && !right_heavy)) % 2; i < n - 1;
-                    i += 2) {
+            for (size_t i = 1 - (n / 2 + (n % 2 == 1 && !right_heavy)) % 2;
+                    i < n - 1; i += 2) {
                 sort_swap(data + elem_size * skip * i,
                         data + elem_size * skip * (i + 1), elem_size,
                         comparator);
+            }
+            break;
+         }
+    }
+}
+
+/* Sort swap generation. */
+
+static void sort_indices(size_t n, size_t start, size_t skip,
+        void (*func)(size_t a, size_t b, void *aux), void *aux);
+static void merge_indices(size_t n, size_t start, size_t skip, bool right_heavy,
+        void (*func)(size_t a, size_t b, void *aux), void *aux);
+
+void o_sort_generate_swaps(size_t n,
+        void (*func)(size_t a, size_t b, void *aux), void *aux) {
+    sort_indices(n, 0, 1, func, aux);
+}
+
+static void sort_indices(size_t n, size_t start, size_t skip,
+        void (*func)(size_t a, size_t b, void *aux), void *aux) {
+    switch (n) {
+        case 0:
+        case 1:
+            /* Do nothing. */
+            break;
+        case 2: {
+            func(start, start + skip, aux);
+            break;
+        }
+        default: {
+            /* See sort_slice for explanation. */
+
+            size_t left_length = (n + 1) / 2;
+            size_t right_length = n / 2;
+            sort_indices(left_length, start, skip, func, aux);
+            sort_indices(right_length, start + left_length * skip, skip, func,
+                    aux);
+            merge_indices(n, start, skip, false, func, aux);
+            break;
+        }
+    }
+}
+
+static void merge_indices(size_t n, size_t start, size_t skip, bool right_heavy,
+        void (*func)(size_t a, size_t b, void *aux), void *aux) {
+    switch (n) {
+        case 0:
+        case 1:
+            /* Do nothing. */
+            break;
+        case 2: {
+            func(start, start + skip, aux);
+            break;
+        }
+        default: {
+            /* See merge_slice for explanation. */
+
+            size_t even_length = (n + 1) / 2;
+            bool even_right_heavy = even_length % 2 == 1 && right_heavy;
+            merge_indices(even_length, start, skip * 2, even_right_heavy, func,
+                    aux);
+
+            size_t odd_length = n / 2;
+            bool odd_right_heavy = odd_length % 2 == 1
+                && (right_heavy || n % 2 == 0);
+            merge_indices(odd_length, start + skip, skip * 2, odd_right_heavy,
+                    func, aux);
+
+            for (size_t i = 1 - (n / 2 + (n % 2 == 1 && !right_heavy)) % 2;
+                    i < n - 1; i += 2) {
+                func(start + i * skip, start + (i + 1) * skip, aux);
             }
             break;
          }

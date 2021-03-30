@@ -43,6 +43,49 @@ exit:
     return ret;
 }
 
+static void swap(size_t a, size_t b, void *arr_) {
+    uint64_t *arr = arr_;
+    if (arr[a] > arr[b]) {
+        uint64_t t = arr[a];
+        arr[a] = arr[b];
+        arr[b] = t;
+    }
+}
+
+char *test_sort_generate_swaps(void) {
+    char *ret;
+
+    uint64_t *arr = malloc(SORT_SIZE * sizeof(uint64_t));
+    if (!arr) {
+        ret = "Malloc arr";
+        goto exit;
+    }
+
+    for (size_t i = 0; i < SORT_SIZE; i++) {
+        arr[i] = get_random() % 1000;
+    }
+
+    o_sort_generate_swaps(SORT_SIZE, swap, arr);
+
+    bool correct = true;
+    for (size_t i = 0; i < SORT_SIZE - 1; i++) {
+        if (arr[i] > arr[i + 1]) {
+            correct = false;
+        }
+    }
+    if (!correct) {
+        ret = "Incorrectly sorted";
+        goto exit_free_arr;
+    }
+
+    ret = NULL;
+
+exit_free_arr:
+    free(arr);
+exit:
+    return ret;
+}
+
 static int comparator(void *a_, void *b_) {
     uint64_t *a = a_;
     uint64_t *b = b_;
