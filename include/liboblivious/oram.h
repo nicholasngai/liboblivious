@@ -12,7 +12,7 @@ struct oram_block {
     bool valid;                 /* Whether this is a valid block. */
     uint64_t id;                /* The block ID. */
     uint64_t leaf_idx_plus_one; /* The block's leaf's index, plus one. */
-    unsigned char data[];       /* The data in the block. */
+    unsigned char data[1];      /* The data in the block. */
 };
 
 struct oram_stash_block {

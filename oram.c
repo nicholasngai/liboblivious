@@ -1,4 +1,5 @@
 #include "liboblivious/oram.h"
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "liboblivious/algorithms.h"
@@ -204,27 +205,27 @@ exit:
 
 /* Helper function for the size of an ORAM block. */
 static size_t get_block_size(oram_t *oram) {
-    return sizeof(struct oram_block) + oram->block_size;
+    return offsetof(struct oram_block, data) + oram->block_size;
 }
 
 /* Helper function for the size of an ORAM stash block. */
 static size_t get_stash_block_size(oram_t *oram) {
-    return sizeof(struct oram_stash_block) + oram->block_size;
+    return offsetof(struct oram_stash_block, block) + get_block_size(oram);
 }
 
 /* Helper function to return a pointer to a block in a bucket. */
 static struct oram_block *get_bucket_block(oram_t *oram, size_t bucket_idx,
         size_t block_idx) {
-    return (void *) oram->buckets
-        + (bucket_idx * oram->blocks_per_bucket + block_idx)
-            * (sizeof(struct oram_block) + oram->block_size);
+    return (struct oram_block *) ((unsigned char *) oram->buckets
+            + (bucket_idx * oram->blocks_per_bucket + block_idx)
+                * get_block_size(oram));
 }
 
 /* Helper function to return a pointer to a block in the stash. */
 static struct oram_stash_block *get_stash_block(oram_t *oram,
         size_t stash_idx) {
-    return (void *) oram->stash +
-        stash_idx * (sizeof(struct oram_stash_block) + oram->block_size);
+    return (struct oram_stash_block *) ((unsigned char *) oram->stash
+            + stash_idx * get_stash_block_size(oram));
 }
 
 /* Comparator to sort blocks from highest to lowest bucket index. */

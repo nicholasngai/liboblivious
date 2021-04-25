@@ -4,7 +4,7 @@ OBJS = algorithms.o opagedmem.o oram.o primitives.o
 DEPS = $(OBJS:.o=.d)
 
 CPPFLAGS = -MMD -Iinclude
-CFLAGS = -O3 -Wall -Wextra
+CFLAGS = -std=c11 -pedantic -pedantic-errors -O3 -Wall -Wextra
 LDFLAGS = -shared
 
 all: FORCE $(TARGET_SO) $(TARGET_AR)

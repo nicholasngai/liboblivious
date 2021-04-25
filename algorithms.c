@@ -24,8 +24,10 @@ static void sort_swap(void *a, void *b, size_t elem_size,
     o_memswap(a, b, elem_size, comp > 0);
 }
 
-static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
+static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
         int (*comparator)(void *a, void *b)) {
+    unsigned char *data = data_;
+
     switch (n) {
         case 0:
         case 1:
@@ -51,8 +53,10 @@ static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
     }
 }
 
-static void merge_slice(void *data, size_t n, size_t elem_size, size_t skip,
+static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
         bool right_heavy, int (*comparator)(void *a, void *b)) {
+    unsigned char *data = data_;
+
     switch (n) {
         case 0:
         case 1:

@@ -188,8 +188,8 @@ static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
 
     /* Perform the memory access. */
     size_t offset = addr & OPAGEDMEM_OFFSET_MASK;
-    o_memaccess(data, opagedmem->data_buffer + offset, size, write,
-            write | *found);
+    o_memaccess(data, (unsigned char *) opagedmem->data_buffer + offset, size,
+            write, write | *found);
 
     /* Write the page back to ORAM. Perform a dummy read if this is not a
      * write. */
