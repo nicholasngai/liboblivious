@@ -7,7 +7,7 @@
 LIBOBLIVIOUS_EXTERNC_BEGIN
 
 void o_sort(void *data, size_t n, size_t elem_size,
-        int (*comparator)(void *a, void *b));
+        int (*comparator)(void *a, void *b, void *aux), void *aux);
 void o_sort_generate_swaps(size_t n,
         void (*func)(size_t a, size_t b, void *aux), void *aux);
 

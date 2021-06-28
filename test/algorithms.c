@@ -7,7 +7,11 @@
 
 #define SORT_SIZE 4
 
-static int comparator(void *a, void *b);
+struct comparator_aux {
+    bool reverse;
+};
+
+static int comparator(void *a, void *b, void *aux);
 
 char *test_sort(void) {
     char *ret;
@@ -22,11 +26,14 @@ char *test_sort(void) {
         arr[i] = get_random() % 1000;
     }
 
-    o_sort(arr, SORT_SIZE, sizeof(*arr), comparator);
+    struct comparator_aux aux = {
+        .reverse = true,
+    };
+    o_sort(arr, SORT_SIZE, sizeof(*arr), comparator, &aux);
 
     bool correct = true;
     for (size_t i = 0; i < SORT_SIZE - 1; i++) {
-        if (arr[i] > arr[i + 1]) {
+        if (arr[i] < arr[i + 1]) {
             correct = false;
         }
     }
@@ -86,8 +93,13 @@ exit:
     return ret;
 }
 
-static int comparator(void *a_, void *b_) {
+static int comparator(void *a_, void *b_, void *aux_) {
     uint64_t *a = a_;
     uint64_t *b = b_;
-    return *a < *b ? -1 : *a > *b ? 1 : 0;
+    struct comparator_aux *aux = aux_;
+    int ret = *a < *b ? -1 : *a > *b ? 1 : 0;
+    if (aux->reverse) {
+        ret *= -1;
+    }
+    return ret;
 }

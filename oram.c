@@ -10,7 +10,7 @@ static size_t get_stash_block_size(oram_t *oram);
 static struct oram_block *get_bucket_block(oram_t *oram, size_t bucket_idx,
         size_t block_idx);
 static struct oram_stash_block *get_stash_block(oram_t *oram, size_t stash_idx);
-static int stash_comparator(void *a, void *b);
+static int stash_comparator(void *a, void *b, void *aux);
 
 int oram_init(oram_t *oram, size_t block_size, size_t blocks_per_bucket,
         size_t num_blocks, size_t stash_size) {
@@ -178,7 +178,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
      * end. At this point, each valid index has exactly oram->blocks_per_bucket
      * blocks. */
     o_sort(oram->stash, oram->stash_size, get_stash_block_size(oram),
-            stash_comparator);
+            stash_comparator, NULL);
 
     /* The first oram->depth * oram->blocks_per_bucket of the stash now
      * contains the blocks to evict back to the path, so we write them back,
@@ -229,7 +229,7 @@ static struct oram_stash_block *get_stash_block(oram_t *oram,
 }
 
 /* Comparator to sort blocks from highest to lowest bucket index. */
-static int stash_comparator(void *a_, void *b_) {
+static int stash_comparator(void *a_, void *b_, void *aux UNUSED) {
     struct oram_stash_block *a = a_;
     struct oram_stash_block *b = b_;
 

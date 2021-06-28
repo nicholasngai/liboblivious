@@ -4,28 +4,29 @@
 /* Sorting. */
 
 static void sort_swap(void *a, void *b, size_t elem_size,
-        int (*comparator)(void *a, void *b));
+        int (*comparator)(void *a, void *b, void *axu), void *aux);
 static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
-        int (*comparator)(void *a, void *b));
+        int (*comparator)(void *a, void *b, void *aux), void *aux);
 static void merge_slice(void *data, size_t n, size_t elem_size, size_t skip,
-        bool right_heavy, int (*comparator)(void *a, void *b));
+        bool right_heavy, int (*comparator)(void *a, void *b, void *aux),
+        void *aux);
 
 void o_sort(void *data, size_t n, size_t elem_size,
-        int (*comparator)(void *a, void *b)) {
+        int (*comparator)(void *a, void *b, void *aux), void *aux) {
     /* This is an implementation of Batcher's odd-even mergesort, with an
      * additional right-heavy flag to work for arbitrary-sized arrays, not just
      * powers of 2. */
-    sort_slice(data, n, elem_size, 1, comparator);
+    sort_slice(data, n, elem_size, 1, comparator, aux);
 }
 
 static void sort_swap(void *a, void *b, size_t elem_size,
-        int (*comparator)(void *a, void *b)) {
-    int comp = comparator(a, b);
+        int (*comparator)(void *a, void *b, void *aux), void *aux) {
+    int comp = comparator(a, b, aux);
     o_memswap(a, b, elem_size, comp > 0);
 }
 
 static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
-        int (*comparator)(void *a, void *b)) {
+        int (*comparator)(void *a, void *b, void *aux), void *aux) {
     unsigned char *data = data_;
 
     switch (n) {
@@ -34,7 +35,8 @@ static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
             /* Do nothing. */
             break;
         case 2: {
-            sort_swap(data, data + elem_size * skip, elem_size, comparator);
+            sort_swap(data, data + elem_size * skip, elem_size, comparator,
+                    aux);
             break;
         }
         default: {
@@ -42,19 +44,20 @@ static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
              * right-heavy. */
             size_t left_length = (n + 1) / 2;
             size_t right_length = n / 2;
-            sort_slice(data, left_length, elem_size, skip, comparator);
+            sort_slice(data, left_length, elem_size, skip, comparator, aux);
             sort_slice(data + elem_size * skip * left_length, right_length,
-                    elem_size, skip, comparator);
+                    elem_size, skip, comparator, aux);
 
             /* Odd-even merge. */
-            merge_slice(data, n, elem_size, skip, false, comparator);
+            merge_slice(data, n, elem_size, skip, false, comparator, aux);
             break;
         }
     }
 }
 
 static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
-        bool right_heavy, int (*comparator)(void *a, void *b)) {
+        bool right_heavy, int (*comparator)(void *a, void *b, void *aux),
+        void *aux) {
     unsigned char *data = data_;
 
     switch (n) {
@@ -63,7 +66,8 @@ static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
             /* Do nothing. */
             break;
         case 2: {
-            sort_swap(data, data + elem_size * skip, elem_size, comparator);
+            sort_swap(data, data + elem_size * skip, elem_size, comparator,
+                    aux);
             break;
         }
         default: {
@@ -73,7 +77,7 @@ static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
             size_t even_length = (n + 1) / 2;
             bool even_right_heavy = even_length % 2 == 1 && right_heavy;
             merge_slice(data, even_length, elem_size, skip * 2,
-                    even_right_heavy, comparator);
+                    even_right_heavy, comparator, aux);
             /* Odd slices are right-heavy iff the odd slice has an odd length
              * and either the current slice is right-heavy or the current slice
              * has an even length. Again, the short-circuit operator is fine
@@ -82,7 +86,7 @@ static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
             bool odd_right_heavy = odd_length % 2 == 1
                 && (right_heavy || n % 2 == 0);
             merge_slice(data + elem_size * skip, odd_length, elem_size,
-                    skip * 2, odd_right_heavy, comparator);
+                    skip * 2, odd_right_heavy, comparator, aux);
 
             /* Sort adjacent pairs such that one pair crosses the left-right
              * boundary, which depends on whether the sorted list is
@@ -97,7 +101,7 @@ static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
                     i < n - 1; i += 2) {
                 sort_swap(data + elem_size * skip * i,
                         data + elem_size * skip * (i + 1), elem_size,
-                        comparator);
+                        comparator, aux);
             }
             break;
          }
