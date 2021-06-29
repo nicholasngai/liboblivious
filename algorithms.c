@@ -4,15 +4,15 @@
 /* Sorting. */
 
 static void sort_swap(void *a, void *b, size_t elem_size,
-        int (*comparator)(void *a, void *b, void *axu), void *aux);
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux);
 static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
-        int (*comparator)(void *a, void *b, void *aux), void *aux);
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux);
 static void merge_slice(void *data, size_t n, size_t elem_size, size_t skip,
-        bool right_heavy, int (*comparator)(void *a, void *b, void *aux),
-        void *aux);
+        bool right_heavy,
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux);
 
 void o_sort(void *data, size_t n, size_t elem_size,
-        int (*comparator)(void *a, void *b, void *aux), void *aux) {
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
     /* This is an implementation of Batcher's odd-even mergesort, with an
      * additional right-heavy flag to work for arbitrary-sized arrays, not just
      * powers of 2. */
@@ -20,13 +20,13 @@ void o_sort(void *data, size_t n, size_t elem_size,
 }
 
 static void sort_swap(void *a, void *b, size_t elem_size,
-        int (*comparator)(void *a, void *b, void *aux), void *aux) {
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
     int comp = comparator(a, b, aux);
     o_memswap(a, b, elem_size, comp > 0);
 }
 
 static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
-        int (*comparator)(void *a, void *b, void *aux), void *aux) {
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
     unsigned char *data = data_;
 
     switch (n) {
@@ -56,8 +56,8 @@ static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
 }
 
 static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
-        bool right_heavy, int (*comparator)(void *a, void *b, void *aux),
-        void *aux) {
+        bool right_heavy,
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
     unsigned char *data = data_;
 
     switch (n) {

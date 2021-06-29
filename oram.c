@@ -10,7 +10,7 @@ static size_t get_stash_block_size(oram_t *oram);
 static struct oram_block *get_bucket_block(oram_t *oram, size_t bucket_idx,
         size_t block_idx);
 static struct oram_stash_block *get_stash_block(oram_t *oram, size_t stash_idx);
-static int stash_comparator(void *a, void *b, void *aux);
+static int stash_comparator(const void *a, const void *b, void *aux);
 
 int oram_init(oram_t *oram, size_t block_size, size_t blocks_per_bucket,
         size_t num_blocks, size_t stash_size) {
@@ -229,9 +229,9 @@ static struct oram_stash_block *get_stash_block(oram_t *oram,
 }
 
 /* Comparator to sort blocks from highest to lowest bucket index. */
-static int stash_comparator(void *a_, void *b_, void *aux UNUSED) {
-    struct oram_stash_block *a = a_;
-    struct oram_stash_block *b = b_;
+static int stash_comparator(const void *a_, const void *b_, void *aux UNUSED) {
+    const struct oram_stash_block *a = a_;
+    const struct oram_stash_block *b = b_;
 
     /* If A < B, this adds 1 + (1 - 1) == 1.
      * If A > B, this adds 0 + (0 - 1) == -1.
