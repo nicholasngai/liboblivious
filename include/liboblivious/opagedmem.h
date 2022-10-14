@@ -6,11 +6,11 @@
 #include "liboblivious/oram.h"
 
 #define OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET 4
-#define OPAGEDMEM_ORAM_STASH_SIZE 256
+#define OPAGEDMEM_ORAM_STASH_SIZE 160
 
-/* Page tables use a 14-(2*22)-7 split to implement a 64-bit address. With 2^5
- * bytes per PTE, OPAGEDMEM_MID_BITS must be exactly 5 less than
- * OPAGEDMEM_OFFSET_BITS. */
+/* Page tables use a 14-5-5-5-5-5-5-5-5-7 split to implement a 64-bit address.
+ * With 8 bytes (64 bits) per PTE, OPAGEDMEM_MID_BITS must be exactly 3 less
+ * than OPAGEDMEM_OFFSET_BITS. */
 #define OPAGEDMEM_FIRST_BITS 14
 #define OPAGEDMEM_FIRST_SIZE (1u << OPAGEDMEM_FIRST_BITS)
 #define OPAGEDMEM_FIRST_MASK (OPAGEDMEM_FIRST_SIZE - 1)

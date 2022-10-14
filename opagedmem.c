@@ -14,9 +14,23 @@ static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
 int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes) {
     size_t num_blocks = (num_bytes + OPAGEDMEM_PAGE_SIZE - 1)
         / OPAGEDMEM_PAGE_SIZE;
+
+    /* Use OPAGEDMEM_ORAM_STASH_SIZE as the persistent stash size (which
+     * doesn't depend on num_bytes) + log2(num_bytes / OPAGEDMEM_PAGE_SIZE) *
+     * OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET * 2 as the transient stash size (which
+     * depends on Z * log2(N)). The * 2 exists because the doubly oblivious
+     * sort for the stash requires double the stash size. */
+    size_t oram_stash_size = 0;
+    while ((1u << oram_stash_size) < num_blocks) {
+        oram_stash_size++;
+    }
+    oram_stash_size =
+        OPAGEDMEM_ORAM_STASH_SIZE
+            + oram_stash_size * OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET * 2;
+
     if (oram_init(&opagedmem->oram, OPAGEDMEM_PAGE_SIZE,
                 OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET, num_blocks,
-                OPAGEDMEM_ORAM_STASH_SIZE)) {
+                oram_stash_size)) {
         /* Obliviousness violation - ORAM init failed. */
         goto exit;
     }
