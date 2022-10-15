@@ -1,5 +1,5 @@
-#ifndef __LIBOBLIVIOUS_OPAGEDMEM_H
-#define __LIBOBLIVIOUS_OPAGEDMEM_H
+#ifndef LIBOBLIVIOUS_OPAGEDMEM_H
+#define LIBOBLIVIOUS_OPAGEDMEM_H
 
 #include <stddef.h>
 #include "liboblivious/internal/defs.h"

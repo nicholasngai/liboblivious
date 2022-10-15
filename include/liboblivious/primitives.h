@@ -1,5 +1,5 @@
-#ifndef __LIBOBLIVIOUS_OSWAP_H
-#define __LIBOBLIVIOUS_OSWAP_H
+#ifndef LIBOBLIVIOUS_OSWAP_H
+#define LIBOBLIVIOUS_OSWAP_H
 
 #include <stdbool.h>
 #include <stddef.h>

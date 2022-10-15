@@ -1,5 +1,5 @@
-#ifndef __LIBOBLIVIOUS_ORAM_H
-#define __LIBOBLIVIOUS_ORAM_H
+#ifndef LIBOBLIVIOUS_ORAM_H
+#define LIBOBLIVIOUS_ORAM_H
 
 #include <stdbool.h>
 #include <stddef.h>

@@ -1,5 +1,5 @@
-#ifndef __LIBOBLIVIOUS_ALGORITHMS_H
-#define __LIBOBLIVIOUS_ALGORITHMS_H
+#ifndef LIBOBLIVIOUS_ALGORITHMS_H
+#define LIBOBLIVIOUS_ALGORITHMS_H
 
 #include <stddef.h>
 #include "liboblivious/internal/defs.h"
