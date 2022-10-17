@@ -5,11 +5,12 @@
 #include "liboblivious/primitives.h"
 
 static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, bool *found, struct opagedmem_entry *table,
-        size_t num_entries, int level, uint64_t (*random_func)(void));
+        size_t size, bool write, struct opagedmem_entry *table,
+        size_t num_entries, int level, bool is_real_access,
+        uint64_t (*random_func)(void));
 static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
-        void *data, size_t size, bool write, bool *found,
-        struct opagedmem_entry *entry, uint64_t (*random_func)(void));
+        void *data, size_t size, bool write, struct opagedmem_entry *entry,
+        bool is_real_access, uint64_t (*random_func)(void));
 
 int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes) {
     size_t num_blocks = (num_bytes + OPAGEDMEM_PAGE_SIZE - 1)
@@ -80,14 +81,12 @@ void opagedmem_destroy(opagedmem_t *opagedmem) {
 }
 
 int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, bool *found, uint64_t (*random_func)(void)) {
-    /* Initialize found to true. We will set it to false if any page table does
-     * not contain the address. */
-    *found = true;
-
+        size_t size, bool write, bool is_real_access,
+        uint64_t (*random_func)(void)) {
     /* Begin recursively accessing the table. */
-    if (access_level(opagedmem, addr, data, size, write, found,
-            opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, random_func)) {
+    if (access_level(opagedmem, addr, data, size, write,
+            opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, is_real_access,
+            random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
@@ -99,12 +98,13 @@ exit:
 }
 
 /* Accesses the page table TABLE with NUM_ENTRIES entries, reads in the next
- * table into the buffer, and recurses to continue accessing deeper tables. */
+ * table into the buffer, and recurses to continue accessing deeper tables. If
+ * IS_DUMMY is true, then this is a set of dummy accesses that ultimately won't
+ * modify the page tables at all. */
 static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, bool *found, struct opagedmem_entry *table,
-        size_t num_entries, int level, uint64_t (*random_func)(void)) {
-    bool curr_level_found = *found;
-
+        size_t size, bool write, struct opagedmem_entry *table,
+        size_t num_entries, int level, bool is_real_access,
+        uint64_t (*random_func)(void)) {
     /* Compute the index in the table and find the table size. The if statement
      * depends only on the level, which is fixed. */
     size_t index;
@@ -128,47 +128,43 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
     };
     opagedmem->next_block_id++;
     for (size_t i = 0; i < num_entries; i++) {
-        bool cond = i == index;
+        bool cond = (i == index) & is_real_access;
         o_memcpy(&entry, &table[i], sizeof(entry), cond & table[i].valid);
-        o_setbool(&curr_level_found, false, cond & !table[i].valid);
     }
-    *found &= curr_level_found;
 
     /* Access the next level. The if statement depends only on the number of
      * levels, which is fixed. These calls should also modify the leaf ID in
      * the entry as part of the ORAM scheme. */
     if (level < OPAGEDMEM_MID_COUNT - 1) {
         /* Read the page table into the buffer. Start initialized to 0 in case
-         * this is a new page. */
+         * this is a new page. If the entry isn't valid, perform a dummy access
+         * since there's nothing to read. */
         memset(&opagedmem->buffer[level], '\0',
                 sizeof(opagedmem->buffer[level]));
-        if (!write & curr_level_found
-                & oram_access(&opagedmem->oram, entry.block_id, entry.leaf_id,
+        if (oram_access(&opagedmem->oram, entry.block_id, entry.leaf_id,
                     &opagedmem->buffer[level], false, &entry.leaf_id,
-                    random_func)) {
+                    entry.valid, random_func)) {
             /* Obliviousness violation - access failed. */
             return -1;
         }
 
-        if (access_level(opagedmem, addr, data, size, write, found,
+        if (access_level(opagedmem, addr, data, size, write,
                     opagedmem->buffer[level].entries, OPAGEDMEM_MID_SIZE,
-                    level + 1, random_func)) {
+                    level + 1, is_real_access, random_func)) {
             /* Obliviousness violation - access failed. */
             goto exit;
         }
 
-        /* Write the page table back to ORAM. Perform a dummy read if this is a
-         * read and we didn't find the address. */
-        if (!write & curr_level_found
-                & oram_access(&opagedmem->oram, entry.block_id, entry.leaf_id,
-                    &opagedmem->buffer[level], write | curr_level_found,
-                    &entry.leaf_id, random_func)) {
+        /* Write the page table back to ORAM. */
+        if (oram_access(&opagedmem->oram, entry.block_id, entry.leaf_id,
+                    &opagedmem->buffer[level], true, &entry.leaf_id,
+                    write | entry.valid, random_func)) {
             /* Obliviousness violation - access failed. */
             goto exit;
         }
     } else {
-        if (access_last_level(opagedmem, addr, data, size, write, found, &entry,
-                    random_func)) {
+        if (access_last_level(opagedmem, addr, data, size, write, &entry,
+                    is_real_access, random_func)) {
             /* Obliviousness violation - access failed. */
             goto exit;
         }
@@ -179,8 +175,8 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
 
     /* Oblivious scan back through the table to update the entry. */
     for (size_t i = 0; i < num_entries; i++) {
-        bool cond = i == index;
-        o_memcpy(&table[i], &entry, sizeof(table[i]), cond & entry.valid);
+        bool cond = (i == index) & is_real_access;
+        o_memcpy(&table[i], &entry, sizeof(table[i]), cond);
     }
 
     return 0;
@@ -190,27 +186,30 @@ exit:
 }
 
 static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
-        void *data, size_t size, bool write, bool *found,
-        struct opagedmem_entry *entry, uint64_t (*random_func)(void)) {
+        void *data, size_t size, bool write, struct opagedmem_entry *entry,
+        bool is_real_access, uint64_t (*random_func)(void)) {
+    /* Zero out the memory in the buffer. */
+    memset(opagedmem->data_buffer, '\0', OPAGEDMEM_PAGE_SIZE);
+
     /* Read the page into the buffer. */
-    if (!write & *found
-            & oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
-                opagedmem->data_buffer, false, &entry->leaf_id, random_func)) {
+    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
+                opagedmem->data_buffer, false, &entry->leaf_id, entry->valid,
+                random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
 
-    /* Perform the memory access. */
+    /* Perform the memory access. If this is a dummy set of accesses (read to a
+     * non-allocated page), the zeros will be kept. */
     size_t offset = addr & OPAGEDMEM_OFFSET_MASK;
     o_memaccess(data, (unsigned char *) opagedmem->data_buffer + offset, size,
-            write, write | *found);
+            write, is_real_access);
 
     /* Write the page back to ORAM. Perform a dummy read if this is not a
      * write. */
-    if (!write & *found
-            & oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
-                opagedmem->data_buffer, write | *found, &entry->leaf_id,
-                random_func)) {
+    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
+                opagedmem->data_buffer, write, &entry->leaf_id,
+                write & is_real_access, random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }

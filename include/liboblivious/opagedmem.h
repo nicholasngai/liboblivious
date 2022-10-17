@@ -8,9 +8,9 @@
 #define OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET 4
 #define OPAGEDMEM_ORAM_STASH_SIZE 160
 
-/* Page tables use a 14-5-5-5-5-5-5-5-5-7 split to implement a 64-bit address.
- * With 8 bytes (64 bits) per PTE, OPAGEDMEM_MID_BITS must be exactly 3 less
- * than OPAGEDMEM_OFFSET_BITS. */
+/* Page tables use a 14-5-5-5-5-5-5-5-5-10 split to implement a 64-bit address.
+ * With 32 bytes per PTE, OPAGEDMEM_MID_BITS must be exactly 5 less than
+ * OPAGEDMEM_OFFSET_BITS. */
 #define OPAGEDMEM_FIRST_BITS 14
 #define OPAGEDMEM_FIRST_SIZE (1u << OPAGEDMEM_FIRST_BITS)
 #define OPAGEDMEM_FIRST_MASK (OPAGEDMEM_FIRST_SIZE - 1)
@@ -49,7 +49,8 @@ int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes);
 void opagedmem_destroy(opagedmem_t *opagedmem);
 
 int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, bool *found, uint64_t (*random_func)(void));
+        size_t size, bool write, bool is_real_access,
+        uint64_t (*random_func)(void));
 
 LIBOBLIVIOUS_EXTERNC_END
 

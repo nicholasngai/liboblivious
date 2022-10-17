@@ -27,38 +27,84 @@ char *test_oram(void) {
         goto exit_destroy_oram;
     }
 
-    memset(data, 'A', ORAM_BLOCK_SIZE);
-    if (oram_access(&oram, 0x123, 0, data, true, &next_leaf_id, get_random)) {
-        ret = "First write";
+    /* Invalid read from ORAM. */
+    memset(data, '\0', ORAM_BLOCK_SIZE);
+    if (!oram_access(&oram, 0x123, 0, data, false, &next_leaf_id, true,
+                get_random)) {
+        ret = "Invalid read succeeded";
         goto exit_free_data;
     }
+
+    /* Dummy invalid read from ORAM. */
+    memset(data, '\0', ORAM_BLOCK_SIZE);
+    if (oram_access(&oram, 0x123, 0, data, false, &next_leaf_id, false,
+                get_random)) {
+        ret = "Dummy invalid valid read failed";
+        goto exit_free_data;
+    }
+
+    /* Write to ORAM. */
+    memset(data, 'A', ORAM_BLOCK_SIZE);
+    if (oram_access(&oram, 0x123, 0, data, true, &next_leaf_id, true,
+                get_random)) {
+        ret = "Write failed";
+        goto exit_free_data;
+    }
+
+    /* Read from ORAM. */
     memset(data, '\0', ORAM_BLOCK_SIZE);
     if (oram_access(&oram, 0x123, next_leaf_id, data, false, &next_leaf_id,
-                get_random)) {
-        ret = "First read";
+                true, get_random)) {
+        ret = "Read after write failed";
         goto exit_free_data;
     }
     for (size_t i = 0; i < ORAM_BLOCK_SIZE; i++) {
         if (data[i] != 'A') {
-            ret = "First read incorrect data";
+            ret = "Read after write produced incorrect data";
             goto exit_free_data;
         }
     }
 
-    memset(data, 'B', ORAM_BLOCK_SIZE);
-    if (oram_access(&oram, 0x123, 0, data, true, &next_leaf_id, get_random)) {
-        ret = "Second write";
+    /* Dummy write to ORAM. */
+    memset(data, 'C', ORAM_BLOCK_SIZE);
+    if (oram_access(&oram, 0x123, 0, data, true, &next_leaf_id, false,
+                get_random)) {
+        ret = "Dummy write";
         goto exit_free_data;
     }
+
+    /* Read from ORAM. */
     memset(data, '\0', ORAM_BLOCK_SIZE);
     if (oram_access(&oram, 0x123, next_leaf_id, data, false, &next_leaf_id,
+                true, get_random)) {
+        ret = "Read after dummy write failed";
+        goto exit_free_data;
+    }
+    for (size_t i = 0; i < ORAM_BLOCK_SIZE; i++) {
+        if (data[i] != 'A') {
+            ret = "Read after dummy write produced incorrect data";
+            goto exit_free_data;
+        }
+    }
+
+    /* Write to ORAM. */
+    memset(data, 'B', ORAM_BLOCK_SIZE);
+    if (oram_access(&oram, 0x123, 0, data, true, &next_leaf_id, true,
                 get_random)) {
-        ret = "Second read";
+        ret = "Overwrite";
+        goto exit_free_data;
+    }
+
+    /* Read from ORAM. */
+    memset(data, '\0', ORAM_BLOCK_SIZE);
+    if (oram_access(&oram, 0x123, next_leaf_id, data, false, &next_leaf_id,
+                true, get_random)) {
+        ret = "Read after overwrite failed";
         goto exit_free_data;
     }
     for (size_t i = 0; i < ORAM_BLOCK_SIZE; i++) {
         if (data[i] != 'B') {
-            ret = "Second read incorrect data";
+            ret = "Read after overwrite produced incorrect data";
             goto exit_free_data;
         }
     }

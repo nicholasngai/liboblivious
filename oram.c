@@ -60,8 +60,12 @@ void oram_destroy(oram_t *oram) {
 }
 
 int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
-        bool write, uint64_t *new_leaf_id, uint64_t (*rand_func)(void)) {
+        bool write, uint64_t *new_leaf_id, bool is_real_access,
+        uint64_t (*rand_func)(void)) {
     size_t bucket_fullness[oram->depth];
+
+    /* If this is a dummy access, choose a random leaf ID. */
+    o_set64(&leaf_id, rand_func() % 1u << (oram->depth - 1), !is_real_access);
 
     if (leaf_id >= 1u << (oram->depth - 1)) {
         /* Obliviousness violation - invalid leaf ID. */
@@ -99,9 +103,11 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
 
     /* Obliviously scan through the stash and access the block. The last
      * (oram->depth * oram->blocks_per_bucket - 1) positions should be a
-     * dummies if we have reached this point, so we skip it.  The accessed
-     * block gets assigned the new leaf. */
-    *new_leaf_id = rand_func() % (1u << (oram->depth - 1));
+     * dummies if we have reached this point, so we skip it. The accessed
+     * block gets assigned the new leaf. If this is a dummy access, start with
+     * accessed == true to begin with and don't change anything. */
+    o_set64(new_leaf_id, rand_func() % (1u << (oram->depth - 1)),
+                is_real_access);
     size_t new_leaf_idx_plus_one = *new_leaf_id + (1u << (oram->depth - 1));
     bool accessed = false;
     for (size_t i = 0;
@@ -109,7 +115,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
             i++) {
         /* Access the block and set its new leaf if it was requested. */
         bool cond = (get_stash_block(oram, i)->block.id == block_id)
-            & get_stash_block(oram, i)->block.valid;
+            & get_stash_block(oram, i)->block.valid & is_real_access;
         o_set64(&get_stash_block(oram, i)->block.leaf_idx_plus_one,
                 new_leaf_idx_plus_one, cond);
         o_memaccess(data, get_stash_block(oram, i)->block.data,
@@ -117,11 +123,11 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         accessed |= cond;
     }
 
-    /* Write to the next position in the stash iff this is a write and the
-     * desired block was not accessed, meaning this is a new block ID.
-     * Assignments don't need to be conditional because the end of the stash
-     * will always be invalid (dummy). */
-    bool cond = write & !accessed;
+    /* Write to the next position in the stash iff this is a write, the desired
+     * block was not accessed, and this is a real access, meaning this is a new
+     * block ID. Assignments don't need to be conditional because the end of
+     * the stash will always be invalid (dummy). */
+    bool cond = write & !accessed & is_real_access;
     get_stash_block(oram, stash_idx)->block.valid = cond;
     get_stash_block(oram, stash_idx)->block.id = block_id;
     get_stash_block(oram, stash_idx)->block.leaf_idx_plus_one =
@@ -197,7 +203,11 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         }
     }
 
-    return !accessed;
+    if (!accessed & is_real_access) {
+        goto exit;
+    }
+
+    return 0;
 
 exit:
     return -1;
