@@ -10,8 +10,16 @@
 struct comparator_aux {
     bool reverse;
 };
-
-static int comparator(void *a, void *b, void *aux);
+static int comparator(const void *a_, const void *b_, void *aux_) {
+    const uint64_t *a = a_;
+    const uint64_t *b = b_;
+    struct comparator_aux *aux = aux_;
+    int ret = *a < *b ? -1 : *a > *b ? 1 : 0;
+    if (aux->reverse) {
+        ret *= -1;
+    }
+    return ret;
+}
 
 char *test_sort(void) {
     char *ret;
@@ -90,16 +98,5 @@ char *test_sort_generate_swaps(void) {
 exit_free_arr:
     free(arr);
 exit:
-    return ret;
-}
-
-static int comparator(void *a_, void *b_, void *aux_) {
-    uint64_t *a = a_;
-    uint64_t *b = b_;
-    struct comparator_aux *aux = aux_;
-    int ret = *a < *b ? -1 : *a > *b ? 1 : 0;
-    if (aux->reverse) {
-        ret *= -1;
-    }
     return ret;
 }

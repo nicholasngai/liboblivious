@@ -4,55 +4,9 @@
 /* Sorting. */
 
 static void sort_swap(void *a, void *b, size_t elem_size,
-        int (*comparator)(const void *a, const void *b, void *aux), void *aux);
-static void sort_slice(void *data, size_t n, size_t elem_size, size_t skip,
-        int (*comparator)(const void *a, const void *b, void *aux), void *aux);
-static void merge_slice(void *data, size_t n, size_t elem_size, size_t skip,
-        bool right_heavy,
-        int (*comparator)(const void *a, const void *b, void *aux), void *aux);
-
-void o_sort(void *data, size_t n, size_t elem_size,
-        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
-    /* This is an implementation of Batcher's odd-even mergesort, with an
-     * additional right-heavy flag to work for arbitrary-sized arrays, not just
-     * powers of 2. */
-    sort_slice(data, n, elem_size, 1, comparator, aux);
-}
-
-static void sort_swap(void *a, void *b, size_t elem_size,
         int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
     int comp = comparator(a, b, aux);
     o_memswap(a, b, elem_size, comp > 0);
-}
-
-static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
-        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
-    unsigned char *data = data_;
-
-    switch (n) {
-        case 0:
-        case 1:
-            /* Do nothing. */
-            break;
-        case 2: {
-            sort_swap(data, data + elem_size * skip, elem_size, comparator,
-                    aux);
-            break;
-        }
-        default: {
-            /* Sort left and right halves. Sorting doesn't care if it's
-             * right-heavy. */
-            size_t left_length = (n + 1) / 2;
-            size_t right_length = n / 2;
-            sort_slice(data, left_length, elem_size, skip, comparator, aux);
-            sort_slice(data + elem_size * skip * left_length, right_length,
-                    elem_size, skip, comparator, aux);
-
-            /* Odd-even merge. */
-            merge_slice(data, n, elem_size, skip, false, comparator, aux);
-            break;
-        }
-    }
 }
 
 static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
@@ -108,42 +62,45 @@ static void merge_slice(void *data_, size_t n, size_t elem_size, size_t skip,
     }
 }
 
-/* Sort swap generation. */
+static void sort_slice(void *data_, size_t n, size_t elem_size, size_t skip,
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
+    unsigned char *data = data_;
 
-static void sort_indices(size_t n, size_t start, size_t skip,
-        void (*func)(size_t a, size_t b, void *aux), void *aux);
-static void merge_indices(size_t n, size_t start, size_t skip, bool right_heavy,
-        void (*func)(size_t a, size_t b, void *aux), void *aux);
-
-void o_sort_generate_swaps(size_t n,
-        void (*func)(size_t a, size_t b, void *aux), void *aux) {
-    sort_indices(n, 0, 1, func, aux);
-}
-
-static void sort_indices(size_t n, size_t start, size_t skip,
-        void (*func)(size_t a, size_t b, void *aux), void *aux) {
     switch (n) {
         case 0:
         case 1:
             /* Do nothing. */
             break;
         case 2: {
-            func(start, start + skip, aux);
+            sort_swap(data, data + elem_size * skip, elem_size, comparator,
+                    aux);
             break;
         }
         default: {
-            /* See sort_slice for explanation. */
-
+            /* Sort left and right halves. Sorting doesn't care if it's
+             * right-heavy. */
             size_t left_length = (n + 1) / 2;
             size_t right_length = n / 2;
-            sort_indices(left_length, start, skip, func, aux);
-            sort_indices(right_length, start + left_length * skip, skip, func,
-                    aux);
-            merge_indices(n, start, skip, false, func, aux);
+            sort_slice(data, left_length, elem_size, skip, comparator, aux);
+            sort_slice(data + elem_size * skip * left_length, right_length,
+                    elem_size, skip, comparator, aux);
+
+            /* Odd-even merge. */
+            merge_slice(data, n, elem_size, skip, false, comparator, aux);
             break;
         }
     }
 }
+
+void o_sort(void *data, size_t n, size_t elem_size,
+        int (*comparator)(const void *a, const void *b, void *aux), void *aux) {
+    /* This is an implementation of Batcher's odd-even mergesort, with an
+     * additional right-heavy flag to work for arbitrary-sized arrays, not just
+     * powers of 2. */
+    sort_slice(data, n, elem_size, 1, comparator, aux);
+}
+
+/* Sort swap generation. */
 
 static void merge_indices(size_t n, size_t start, size_t skip, bool right_heavy,
         void (*func)(size_t a, size_t b, void *aux), void *aux) {
@@ -177,4 +134,34 @@ static void merge_indices(size_t n, size_t start, size_t skip, bool right_heavy,
             break;
          }
     }
+}
+
+static void sort_indices(size_t n, size_t start, size_t skip,
+        void (*func)(size_t a, size_t b, void *aux), void *aux) {
+    switch (n) {
+        case 0:
+        case 1:
+            /* Do nothing. */
+            break;
+        case 2: {
+            func(start, start + skip, aux);
+            break;
+        }
+        default: {
+            /* See sort_slice for explanation. */
+
+            size_t left_length = (n + 1) / 2;
+            size_t right_length = n / 2;
+            sort_indices(left_length, start, skip, func, aux);
+            sort_indices(right_length, start + left_length * skip, skip, func,
+                    aux);
+            merge_indices(n, start, skip, false, func, aux);
+            break;
+        }
+    }
+}
+
+void o_sort_generate_swaps(size_t n,
+        void (*func)(size_t a, size_t b, void *aux), void *aux) {
+    sort_indices(n, 0, 1, func, aux);
 }

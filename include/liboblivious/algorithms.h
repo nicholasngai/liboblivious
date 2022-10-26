@@ -11,6 +11,9 @@ void o_sort(void *data, size_t n, size_t elem_size,
 void o_sort_generate_swaps(size_t n,
         void (*func)(size_t a, size_t b, void *aux), void *aux);
 
+void o_compact(void *data, size_t n, size_t elem_size,
+        bool (*is_marked)(const void *elem, void *aux), void *aux);
+
 LIBOBLIVIOUS_EXTERNC_END
 
 #endif /* liboblivious/algorithms.h */
