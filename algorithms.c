@@ -182,7 +182,7 @@ static void compact_offset(void *data_, size_t n, size_t elem_size,
         bool left_is_marked = is_marked(data, aux);
         bool right_is_marked = is_marked(data + elem_size, aux);
         o_memswap(data, data + elem_size, elem_size,
-                (!left_is_marked & right_is_marked) != offset);
+                (!left_is_marked & right_is_marked) != (offset % 2 == 1));
         return;
     }
 
@@ -197,7 +197,7 @@ static void compact_offset(void *data_, size_t n, size_t elem_size,
 
     /* Compact the right half to an offset of
      * (OFFSET + LEFT_MARKED_COUNT) % (N / 2). */
-    compact_offset(data, n / 2, elem_size,
+    compact_offset(data + elem_size * n / 2, n / 2, elem_size,
             (offset + left_marked_count) % (n / 2), is_marked, aux);
 
     /* Perform a range of swaps to place the compaction result at the right
@@ -230,11 +230,12 @@ void o_compact(void *data_, size_t n, size_t elem_size,
 
     o_compact(data, left_length, elem_size, is_marked, aux);
     compact_offset(data + elem_size * left_length, right_length, elem_size,
-            right_length - left_length + left_marked_count, is_marked, aux);
+            (right_length - left_length + left_marked_count) % right_length,
+            is_marked, aux);
 
     for (size_t i = 0; i < left_length; i++) {
-        bool cond = i > left_marked_count;
-        o_memswap(data + elem_size * i, data + elem_size * (i + n / 2),
+        bool cond = i >= left_marked_count;
+        o_memswap(data + elem_size * i, data + elem_size * (i + right_length),
                 elem_size, cond);
     }
 }

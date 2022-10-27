@@ -110,7 +110,7 @@ char *test_compact(void) {
 
     bool *arr = malloc(SORT_SIZE * sizeof(bool));
     for (size_t i = 0; i < SORT_SIZE; i++) {
-        arr[i] = get_random() % 1000 > 200;
+        arr[i] = get_random() % 1000 < 200;
     }
 
     o_compact(arr, SORT_SIZE, sizeof(*arr), is_marked, NULL);
@@ -120,12 +120,12 @@ char *test_compact(void) {
     for (size_t i = 0; i < SORT_SIZE; i++) {
         if (is_marked) {
             if (!arr[i]) {
-                correct = false;
-                break;
+                is_marked = false;
             }
         } else {
-            if (!arr[i]) {
-                is_marked = false;
+            if (arr[i]) {
+                correct = false;
+                break;
             }
         }
     }
