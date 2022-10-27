@@ -5,7 +5,7 @@
 #include "liboblivious/algorithms.h"
 #include "common.h"
 
-#define SORT_SIZE 4
+#define SORT_SIZE 1000
 
 struct comparator_aux {
     bool reverse;
@@ -97,6 +97,45 @@ char *test_sort_generate_swaps(void) {
 
 exit_free_arr:
     free(arr);
+exit:
+    return ret;
+}
+
+static bool is_marked(const void *elem,  void *aux UNUSED) {
+    return *((const bool *) elem);
+}
+
+char *test_compact(void) {
+    char *ret;
+
+    bool *arr = malloc(SORT_SIZE * sizeof(bool));
+    for (size_t i = 0; i < SORT_SIZE; i++) {
+        arr[i] = get_random() % 1000 < 200;
+    }
+
+    o_compact(arr, SORT_SIZE, sizeof(*arr), is_marked, NULL);
+
+    bool is_marked = true;
+    bool correct = true;
+    for (size_t i = 0; i < SORT_SIZE; i++) {
+        if (is_marked) {
+            if (!arr[i]) {
+                is_marked = false;
+            }
+        } else {
+            if (arr[i]) {
+                correct = false;
+                break;
+            }
+        }
+    }
+    if (!correct) {
+        ret = "Incorrectly compacted";
+        goto exit;
+    }
+
+    ret = NULL;
+
 exit:
     return ret;
 }
