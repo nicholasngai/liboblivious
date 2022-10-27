@@ -1,4 +1,6 @@
 #include "liboblivious/algorithms.h"
+#include <stddef.h>
+#include <stdbool.h>
 #include "liboblivious/internal/util.h"
 #include "liboblivious/primitives.h"
 
@@ -169,52 +171,50 @@ void o_sort_generate_swaps(size_t n,
 
 /* Compaction. */
 
-static void compact_offset(void *data_, size_t n, size_t elem_size,
-        size_t offset, bool (*is_marked)(const void *elem, void *aux),
+static void compact_offset(size_t start, size_t n, size_t offset,
+        bool (*is_marked)(size_t index, void *aux),
+        void (*swap)(size_t a, size_t b, bool should_swap, void *aux),
         void *aux) {
-    unsigned char *data = data_;
-
     if (n < 2) {
         return;
     }
 
     if (n == 2) {
-        bool left_is_marked = is_marked(data, aux);
-        bool right_is_marked = is_marked(data + elem_size, aux);
-        o_memswap(data, data + elem_size, elem_size,
-                (!left_is_marked & right_is_marked) != (offset % 2 == 1));
+        bool left_is_marked = is_marked(start, aux);
+        bool right_is_marked = is_marked(start + 1, aux);
+        swap(start, start + 1,
+                (!left_is_marked & right_is_marked) != (offset % 2 == 1), aux);
         return;
     }
 
     /* Count the number of marked items in the left half. */
     size_t left_marked_count = 0;
     for (size_t i = 0; i < n / 2; i++) {
-        left_marked_count += is_marked(data + elem_size * i, aux);
+        left_marked_count += is_marked(start + i, aux);
     }
 
     /* Compact the left half to an offset of OFFSET % (N / 2). */
-    compact_offset(data, n / 2, elem_size, offset % (n / 2), is_marked, aux);
+    compact_offset(start, n / 2, offset % (n / 2), is_marked, swap, aux);
 
     /* Compact the right half to an offset of
      * (OFFSET + LEFT_MARKED_COUNT) % (N / 2). */
-    compact_offset(data + elem_size * n / 2, n / 2, elem_size,
-            (offset + left_marked_count) % (n / 2), is_marked, aux);
+    compact_offset(start + n / 2, n / 2,
+            (offset + left_marked_count) % (n / 2), is_marked, swap, aux);
 
     /* Perform a range of swaps to place the compaction result at the right
      * offset. */
     bool s =
         ((offset % (n / 2)) + left_marked_count >= n / 2) != (offset >= n / 2);
     for (size_t i = 0; i < n / 2; i++) {
-        bool cond = s != (i >= (offset + left_marked_count) % (n / 2));
-        o_memswap(data + elem_size * i, data + elem_size * (i + n / 2),
-                elem_size, cond);
+        bool should_swap = s != (i >= (offset + left_marked_count) % (n / 2));
+        swap(start + i, start + i + n / 2, should_swap, aux);
     }
 }
 
-void o_compact(void *data_, size_t n, size_t elem_size,
-        bool (*is_marked)(const void *elem, void *aux), void *aux) {
-    unsigned char *data = data_;
-
+void o_compact_generate_swaps(size_t n,
+        bool (*is_marked)(size_t index, void *aux),
+        void (*swap)(size_t a, size_t b, bool should_swap, void *aux),
+        void *aux) {
     if (n < 2) {
         return;
     }
@@ -225,17 +225,45 @@ void o_compact(void *data_, size_t n, size_t elem_size,
     /* Count the number of marked items in the left half. */
     size_t left_marked_count = 0;
     for (size_t i = 0; i < left_length; i++) {
-        left_marked_count += is_marked(data + elem_size * i, aux);
+        left_marked_count += is_marked(i, aux);
     }
 
-    o_compact(data, left_length, elem_size, is_marked, aux);
-    compact_offset(data + elem_size * left_length, right_length, elem_size,
+    o_compact_generate_swaps(left_length, is_marked, swap, aux);
+    compact_offset(left_length, right_length,
             (right_length - left_length + left_marked_count) % right_length,
-            is_marked, aux);
+            is_marked, swap, aux);
 
     for (size_t i = 0; i < left_length; i++) {
-        bool cond = i >= left_marked_count;
-        o_memswap(data + elem_size * i, data + elem_size * (i + right_length),
-                elem_size, cond);
+        bool should_swap = i >= left_marked_count;
+        swap(i, i + right_length, should_swap, aux);
     }
+}
+
+struct compact_aux {
+    unsigned char *data;
+    size_t elem_size;
+    bool (*is_marked)(const void *elem, void *aux);
+    void *aux;
+};
+
+static bool compact_is_marked(size_t index, void *aux_) {
+    struct compact_aux *aux = aux_;
+    return aux->is_marked(aux->data + aux->elem_size * index, aux->aux);
+}
+
+static void compact_swap(size_t a, size_t b, bool should_swap, void *aux_) {
+    struct compact_aux *aux = aux_;
+    o_memswap(aux->data + aux->elem_size * a, aux->data + aux->elem_size * b,
+            aux->elem_size, should_swap);
+}
+
+void o_compact(void *data, size_t n, size_t elem_size,
+        bool (*is_marked)(const void *elem, void *aux), void *aux) {
+    struct compact_aux compact_aux = {
+        .data = data,
+        .elem_size = elem_size,
+        .is_marked = is_marked,
+        .aux = aux,
+    };
+    o_compact_generate_swaps(n, compact_is_marked, compact_swap, &compact_aux);
 }

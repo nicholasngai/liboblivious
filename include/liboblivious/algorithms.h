@@ -14,6 +14,10 @@ void o_sort_generate_swaps(size_t n,
 
 void o_compact(void *data, size_t n, size_t elem_size,
         bool (*is_marked)(const void *elem, void *aux), void *aux);
+void o_compact_generate_swaps(size_t n,
+        bool (*is_marked)(size_t index, void *aux),
+        void (*swap)(size_t a, size_t b, bool should_swap, void *aux),
+        void *aux);
 
 LIBOBLIVIOUS_EXTERNC_END
 
