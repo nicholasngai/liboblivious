@@ -100,3 +100,42 @@ exit_free_arr:
 exit:
     return ret;
 }
+
+static bool is_marked(const void *elem,  void *aux UNUSED) {
+    return *((const bool *) elem);
+}
+
+char *test_compact(void) {
+    char *ret;
+
+    bool *arr = malloc(SORT_SIZE * sizeof(bool));
+    for (size_t i = 0; i < SORT_SIZE; i++) {
+        arr[i] = get_random() % 1000 > 200;
+    }
+
+    o_compact(arr, SORT_SIZE, sizeof(*arr), is_marked, NULL);
+
+    bool is_marked = true;
+    bool correct = true;
+    for (size_t i = 0; i < SORT_SIZE; i++) {
+        if (is_marked) {
+            if (!arr[i]) {
+                correct = false;
+                break;
+            }
+        } else {
+            if (!arr[i]) {
+                is_marked = false;
+            }
+        }
+    }
+    if (!correct) {
+        ret = "Incorrectly compacted";
+        goto exit;
+    }
+
+    ret = NULL;
+
+exit:
+    return ret;
+}

@@ -7,12 +7,17 @@ int main(void) {
     char *err;
     err = test_sort();
     if (err) {
-        printf("Failed sort: %s\n", err);
+        printf("Failed o_sort: %s\n", err);
         return 1;
     }
     err = test_sort_generate_swaps();
     if (err) {
-        printf("Failed sort_generate_swaps: %s\n", err);
+        printf("Failed o_sort_generate_swaps: %s\n", err);
+        return 1;
+    }
+    err = test_compact();
+    if (err) {
+        printf("Failed o_compact: %s\n", err);
         return 1;
     }
     err = test_oram();

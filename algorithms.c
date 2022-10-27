@@ -1,4 +1,5 @@
 #include "liboblivious/algorithms.h"
+#include "liboblivious/internal/util.h"
 #include "liboblivious/primitives.h"
 
 /* Sorting. */
@@ -164,4 +165,76 @@ static void sort_indices(size_t n, size_t start, size_t skip,
 void o_sort_generate_swaps(size_t n,
         void (*func)(size_t a, size_t b, void *aux), void *aux) {
     sort_indices(n, 0, 1, func, aux);
+}
+
+/* Compaction. */
+
+static void compact_offset(void *data_, size_t n, size_t elem_size,
+        size_t offset, bool (*is_marked)(const void *elem, void *aux),
+        void *aux) {
+    unsigned char *data = data_;
+
+    if (n < 2) {
+        return;
+    }
+
+    if (n == 2) {
+        bool left_is_marked = is_marked(data, aux);
+        bool right_is_marked = is_marked(data + elem_size, aux);
+        o_memswap(data, data + elem_size, elem_size,
+                (!left_is_marked & right_is_marked) != offset);
+        return;
+    }
+
+    /* Count the number of marked items in the left half. */
+    size_t left_marked_count = 0;
+    for (size_t i = 0; i < n / 2; i++) {
+        left_marked_count += is_marked(data + elem_size * i, aux);
+    }
+
+    /* Compact the left half to an offset of OFFSET % (N / 2). */
+    compact_offset(data, n / 2, elem_size, offset % (n / 2), is_marked, aux);
+
+    /* Compact the right half to an offset of
+     * (OFFSET + LEFT_MARKED_COUNT) % (N / 2). */
+    compact_offset(data, n / 2, elem_size,
+            (offset + left_marked_count) % (n / 2), is_marked, aux);
+
+    /* Perform a range of swaps to place the compaction result at the right
+     * offset. */
+    bool s =
+        ((offset % (n / 2)) + left_marked_count >= n / 2) != (offset >= n / 2);
+    for (size_t i = 0; i < n / 2; i++) {
+        bool cond = s != (i >= (offset + left_marked_count) % (n / 2));
+        o_memswap(data + elem_size * i, data + elem_size * (i + n / 2),
+                elem_size, cond);
+    }
+}
+
+void o_compact(void *data_, size_t n, size_t elem_size,
+        bool (*is_marked)(const void *elem, void *aux), void *aux) {
+    unsigned char *data = data_;
+
+    if (n < 2) {
+        return;
+    }
+
+    size_t right_length = 1u << ilog2l(n);
+    size_t left_length = n - right_length;
+
+    /* Count the number of marked items in the left half. */
+    size_t left_marked_count = 0;
+    for (size_t i = 0; i < left_length; i++) {
+        left_marked_count += is_marked(data + elem_size * i, aux);
+    }
+
+    o_compact(data, left_length, elem_size, is_marked, aux);
+    compact_offset(data + elem_size * left_length, right_length, elem_size,
+            right_length - left_length + left_marked_count, is_marked, aux);
+
+    for (size_t i = 0; i < left_length; i++) {
+        bool cond = i > left_marked_count;
+        o_memswap(data + elem_size * i, data + elem_size * (i + n / 2),
+                elem_size, cond);
+    }
 }

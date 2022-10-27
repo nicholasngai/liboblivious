@@ -2,6 +2,7 @@
 #define LIBOBLIVIOUS_ALGORITHMS_H
 
 #include <stddef.h>
+#include <stdbool.h>
 #include "liboblivious/internal/defs.h"
 
 LIBOBLIVIOUS_EXTERNC_BEGIN

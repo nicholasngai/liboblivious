@@ -3,5 +3,6 @@
 
 char *test_sort(void);
 char *test_sort_generate_swaps(void);
+char *test_compact(void);
 
 #endif /* liboblivious/test/algorithms.h */
