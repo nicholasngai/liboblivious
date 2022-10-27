@@ -5,7 +5,7 @@
 #include "liboblivious/algorithms.h"
 #include "common.h"
 
-#define SORT_SIZE 4
+#define SORT_SIZE 1000
 
 struct comparator_aux {
     bool reverse;
