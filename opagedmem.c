@@ -1,7 +1,11 @@
 #include "liboblivious/opagedmem.h"
 #include <assert.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "liboblivious/internal/util.h"
 #include "liboblivious/oram.h"
 #include "liboblivious/primitives.h"
 
@@ -202,9 +206,17 @@ exit:
     return -1;
 }
 
-int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
+int opagedmem_pageaccess(opagedmem_t *opagedmem, uint64_t addr, void *data,
         size_t size, bool write, bool is_real_access,
         uint64_t (*random_func)(void)) {
+    size_t last_addr = addr + size - 1;
+    if (((addr - (addr & OPAGEDMEM_OFFSET_MASK))
+                != (last_addr - (last_addr & OPAGEDMEM_OFFSET_MASK)))
+            & is_real_access) {
+        /* Obliviousness violation - invalid call to opagedmem_access. */
+        goto exit;
+    }
+
     /* Begin recursively accessing the table. */
     if (access_level(opagedmem, addr, data, size, write,
             opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, is_real_access,
@@ -217,4 +229,42 @@ int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
 
 exit:
     return -1;
+}
+
+int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data_,
+        size_t size, bool write, bool is_real_access,
+        uint64_t (*random_func)(void)) {
+    unsigned char *data = data_;
+    int ret;
+
+    /* Access each page spanned by the accessed address range. */
+    // TODO This could be optimized: If the access spans, for example, 3 pages,
+    // we know that at least 2 of those pages will differ in at most one level
+    // of the page table (it's impossible for 3 adjacent pages to be located in
+    // 3 different second-level page tables, so we could optimize the access to
+    // avoid the redundant accesess.
+    size_t num_page_accesses = CEIL_DIV(size - 1, OPAGEDMEM_PAGE_SIZE) + 1;
+    for (size_t i = 0; i < num_page_accesses; i++) {
+        uint64_t page_offset = addr & OPAGEDMEM_OFFSET_MASK;
+        size_t page_size = MIN(size, OPAGEDMEM_PAGE_SIZE - page_offset);
+        bool page_is_real_access = is_real_access & (page_size > 0);
+
+        ret =
+            opagedmem_pageaccess(opagedmem,
+                addr - (addr & OPAGEDMEM_OFFSET_MASK) + page_offset, data,
+                page_size, write, page_is_real_access, random_func);
+        if (ret) {
+            /* Obliviousness violation - page access failed. */
+            goto exit;
+        }
+
+        addr += page_size;
+        data += page_size;
+        size -= page_size;
+    }
+
+    ret = 0;
+
+exit:
+    return ret;
 }

@@ -1,7 +1,9 @@
 #ifndef LIBOBLIVIOUS_OPAGEDMEM_H
 #define LIBOBLIVIOUS_OPAGEDMEM_H
 
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "liboblivious/internal/defs.h"
 #include "liboblivious/oram.h"
 
@@ -47,6 +49,18 @@ typedef struct opagedmem {
 int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes);
 void opagedmem_destroy(opagedmem_t *opagedmem);
 
+/* Performs an oblivious access within a single page of the oblivious paged
+ * memory. Accesses that span multiple pages are rejected non-obliviously. */
+int opagedmem_pageaccess(opagedmem_t *opagedmem, uint64_t addr, void *data,
+        size_t size, bool write, bool is_real_access,
+        uint64_t (*random_func)(void));
+
+/* Performs an oblivious access of the oblivious paged memory.
+ *
+ * Unlike opagedmem_pageaccess, the access need not be within a single page, at
+ * the expense of slower access times. Also unlike opagedmem_pageaccess, the
+ * size of the access is only oblivious up the level of the largest potential
+ * number of spanned pages (i.e. the value of SIZE / OPAGEDMEM_OFFSET_SIZE) is */
 int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
         size_t size, bool write, bool is_real_access,
         uint64_t (*random_func)(void));
