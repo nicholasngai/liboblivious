@@ -1,8 +1,12 @@
 #include "liboblivious/opagedmem.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "liboblivious/oram.h"
 #include "liboblivious/primitives.h"
+
+static_assert((1 << OPAGEDMEM_OFFSET_BITS) == (1 << OPAGEDMEM_MID_BITS) * sizeof(struct opagedmem_entry),
+        "1 << OPAGEDMEM_OFFSET_BITS must be equal to (1 << OPAGEDMEM_MID_BITS) * sizeof(struct opagedmem_entry)");
 
 int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes) {
     size_t num_blocks = (num_bytes + OPAGEDMEM_PAGE_SIZE - 1)
