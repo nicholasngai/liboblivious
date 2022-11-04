@@ -5,12 +5,30 @@
 #include "liboblivious/algorithms.h"
 #include "liboblivious/primitives.h"
 
-static size_t get_block_size(oram_t *oram);
-static size_t get_stash_block_size(oram_t *oram);
+/* Helper function for the size of an ORAM block. */
+static size_t get_block_size(oram_t *oram) {
+    return offsetof(struct oram_block, data) + oram->block_size;
+}
+
+/* Helper function for the size of an ORAM stash block. */
+static size_t get_stash_block_size(oram_t *oram) {
+    return offsetof(struct oram_stash_block, block) + get_block_size(oram);
+}
+
+/* Helper function to return a pointer to a block in a bucket. */
 static struct oram_block *get_bucket_block(oram_t *oram, size_t bucket_idx,
-        size_t block_idx);
-static struct oram_stash_block *get_stash_block(oram_t *oram, size_t stash_idx);
-static int stash_comparator(const void *a, const void *b, void *aux);
+        size_t block_idx) {
+    return (struct oram_block *) ((unsigned char *) oram->buckets
+            + (bucket_idx * oram->blocks_per_bucket + block_idx)
+                * get_block_size(oram));
+}
+
+/* Helper function to return a pointer to a block in the stash. */
+static struct oram_stash_block *get_stash_block(oram_t *oram,
+        size_t stash_idx) {
+    return (struct oram_stash_block *) ((unsigned char *) oram->stash
+            + stash_idx * get_stash_block_size(oram));
+}
 
 int oram_init(oram_t *oram, size_t block_size, size_t blocks_per_bucket,
         size_t num_blocks, size_t stash_size) {
@@ -57,6 +75,26 @@ exit:
 void oram_destroy(oram_t *oram) {
     free(oram->buckets);
     free(oram->stash);
+}
+
+/* Comparator to sort blocks from highest to lowest bucket index. */
+static int stash_comparator(const void *a_, const void *b_, void *aux UNUSED) {
+    const struct oram_stash_block *a = a_;
+    const struct oram_stash_block *b = b_;
+
+    /* If A < B, this adds 1 + (1 - 1) == 1.
+     * If A > B, this adds 0 + (0 - 1) == -1.
+     * If A == B, this adds 0 + (1 - 1) == 0. */
+    int comp = (int) (a->bucket_idx_plus_one < b->bucket_idx_plus_one)
+        + ((int) (a->bucket_idx_plus_one <= b->bucket_idx_plus_one) - 1);
+
+    comp <<= 2;
+
+    /* If A is dummy and B is not, this adds 1. */
+
+    comp += !a->block.valid & b->block.valid;
+
+    return comp;
 }
 
 int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
@@ -211,49 +249,4 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
 
 exit:
     return -1;
-}
-
-/* Helper function for the size of an ORAM block. */
-static size_t get_block_size(oram_t *oram) {
-    return offsetof(struct oram_block, data) + oram->block_size;
-}
-
-/* Helper function for the size of an ORAM stash block. */
-static size_t get_stash_block_size(oram_t *oram) {
-    return offsetof(struct oram_stash_block, block) + get_block_size(oram);
-}
-
-/* Helper function to return a pointer to a block in a bucket. */
-static struct oram_block *get_bucket_block(oram_t *oram, size_t bucket_idx,
-        size_t block_idx) {
-    return (struct oram_block *) ((unsigned char *) oram->buckets
-            + (bucket_idx * oram->blocks_per_bucket + block_idx)
-                * get_block_size(oram));
-}
-
-/* Helper function to return a pointer to a block in the stash. */
-static struct oram_stash_block *get_stash_block(oram_t *oram,
-        size_t stash_idx) {
-    return (struct oram_stash_block *) ((unsigned char *) oram->stash
-            + stash_idx * get_stash_block_size(oram));
-}
-
-/* Comparator to sort blocks from highest to lowest bucket index. */
-static int stash_comparator(const void *a_, const void *b_, void *aux UNUSED) {
-    const struct oram_stash_block *a = a_;
-    const struct oram_stash_block *b = b_;
-
-    /* If A < B, this adds 1 + (1 - 1) == 1.
-     * If A > B, this adds 0 + (0 - 1) == -1.
-     * If A == B, this adds 0 + (1 - 1) == 0. */
-    int comp = (int) (a->bucket_idx_plus_one < b->bucket_idx_plus_one)
-        + ((int) (a->bucket_idx_plus_one <= b->bucket_idx_plus_one) - 1);
-
-    comp <<= 2;
-
-    /* If A is dummy and B is not, this adds 1. */
-
-    comp += !a->block.valid & b->block.valid;
-
-    return comp;
 }

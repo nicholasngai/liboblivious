@@ -4,14 +4,6 @@
 #include "liboblivious/oram.h"
 #include "liboblivious/primitives.h"
 
-static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, struct opagedmem_entry *table,
-        size_t num_entries, int level, bool is_real_access,
-        uint64_t (*random_func)(void));
-static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
-        void *data, size_t size, bool write, struct opagedmem_entry *entry,
-        bool is_real_access, uint64_t (*random_func)(void));
-
 int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes) {
     size_t num_blocks = (num_bytes + OPAGEDMEM_PAGE_SIZE - 1)
         / OPAGEDMEM_PAGE_SIZE;
@@ -80,13 +72,34 @@ void opagedmem_destroy(opagedmem_t *opagedmem) {
     free(opagedmem->data_buffer);
 }
 
-int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, bool is_real_access,
-        uint64_t (*random_func)(void)) {
-    /* Begin recursively accessing the table. */
-    if (access_level(opagedmem, addr, data, size, write,
-            opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, is_real_access,
-            random_func)) {
+static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
+        void *data, size_t size, bool write, struct opagedmem_entry *entry,
+        bool is_real_access, uint64_t (*random_func)(void)) {
+    /* Zero out the memory in the buffer. */
+    memset(opagedmem->data_buffer, '\0', OPAGEDMEM_PAGE_SIZE);
+
+    /* Read the page into the buffer. */
+    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
+                opagedmem->data_buffer, false, &entry->leaf_id, entry->valid,
+                random_func)) {
+        /* Obliviousness violation - access failed. */
+        goto exit;
+    }
+
+    /* Perform the memory access. If this is a dummy set of accesses (read to a
+     * non-allocated page), the zeros will be kept. */
+    size_t offset = addr & OPAGEDMEM_OFFSET_MASK;
+    for (size_t i = 0; i < OPAGEDMEM_PAGE_SIZE; i++) {
+        bool cond = (i >= offset) & (i < offset + size) & is_real_access;
+        o_access8((unsigned char *) data + i - offset,
+                (unsigned char *) opagedmem->data_buffer + i, write, cond);
+    }
+
+    /* Write the page back to ORAM. Perform a dummy read if this is not a
+     * write. */
+    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
+                opagedmem->data_buffer, write, &entry->leaf_id,
+                write & is_real_access, random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
@@ -185,34 +198,13 @@ exit:
     return -1;
 }
 
-static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
-        void *data, size_t size, bool write, struct opagedmem_entry *entry,
-        bool is_real_access, uint64_t (*random_func)(void)) {
-    /* Zero out the memory in the buffer. */
-    memset(opagedmem->data_buffer, '\0', OPAGEDMEM_PAGE_SIZE);
-
-    /* Read the page into the buffer. */
-    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
-                opagedmem->data_buffer, false, &entry->leaf_id, entry->valid,
-                random_func)) {
-        /* Obliviousness violation - access failed. */
-        goto exit;
-    }
-
-    /* Perform the memory access. If this is a dummy set of accesses (read to a
-     * non-allocated page), the zeros will be kept. */
-    size_t offset = addr & OPAGEDMEM_OFFSET_MASK;
-    for (size_t i = 0; i < OPAGEDMEM_PAGE_SIZE; i++) {
-        bool cond = (i >= offset) & (i < offset + size) & is_real_access;
-        o_access8((unsigned char *) data + i - offset,
-                (unsigned char *) opagedmem->data_buffer + i, write, cond);
-    }
-
-    /* Write the page back to ORAM. Perform a dummy read if this is not a
-     * write. */
-    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
-                opagedmem->data_buffer, write, &entry->leaf_id,
-                write & is_real_access, random_func)) {
+int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data,
+        size_t size, bool write, bool is_real_access,
+        uint64_t (*random_func)(void)) {
+    /* Begin recursively accessing the table. */
+    if (access_level(opagedmem, addr, data, size, write,
+            opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, is_real_access,
+            random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
