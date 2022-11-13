@@ -1,4 +1,7 @@
 #include "liboblivious/primitives.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 void *o_memcpy(void *restrict dest, const void *restrict src, size_t n, bool cond) {
     for (size_t i = 0; i < n; i++) {
