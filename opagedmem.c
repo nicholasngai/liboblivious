@@ -97,11 +97,8 @@ static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
     /* Perform the memory access. If this is a dummy set of accesses (read to a
      * non-allocated page), the zeros will be kept. */
     size_t offset = addr & OPAGEDMEM_OFFSET_MASK;
-    for (size_t i = 0; i < OPAGEDMEM_PAGE_SIZE; i++) {
-        bool cond = (i >= offset) & (i < offset + size) & is_real_access;
-        o_access8((unsigned char *) data + i - offset,
-                (unsigned char *) opagedmem->data_buffer + i, write, cond);
-    }
+    o_slice(data, opagedmem->data_buffer, OPAGEDMEM_PAGE_SIZE, offset, size,
+            write, is_real_access);
 
     /* Write the page back to ORAM. Perform a dummy read if this is not a
      * write. */
