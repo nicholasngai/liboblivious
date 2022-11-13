@@ -194,11 +194,9 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
     /* Set the valid bit on the entry if this was a write. */
     o_setbool(&entry.valid, true, write);
 
-    /* Oblivious scan back through the table to update the entry. */
-    for (size_t i = 0; i < num_entries; i++) {
-        bool cond = (i == index) & is_real_access;
-        o_memcpy(&table[i], &entry, sizeof(table[i]), cond);
-    }
+    /* Oblivious write back to the table to update the entry. */
+    o_select(&entry, table, num_entries, sizeof(entry), index, true,
+            is_real_access);
 
     return 0;
 

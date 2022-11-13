@@ -118,6 +118,23 @@ void *o_memset(void *dest, unsigned char src, size_t n, bool cond);
 void o_memswap(void *a, void *b, size_t n, bool cond);
 void o_memaccess(void *readp, void *writep, size_t n, bool write, bool cond);
 
+/* If COND, obliviously access the item with index INDEX in SRC, which has
+ * LENGTH items of size ELEM, with DEST, which has size ELEM_SIZE. The access is
+ * a write from ELEM to ARR if WRITE, or else it is a read from ARR to ELEM.
+ *
+ * INDEX is kept oblivious. */
+void o_select(void *elem, void *arr, size_t length, size_t elem_size,
+        size_t index, bool write, bool cond);
+
+/* If COND, obliviously access the range of bytes starting at SLICE_START of
+ * length SLICE_LENGTH in ARR, which is LENGTH bytes long, with SLICE, which has
+ * size at least SLICE_LENGTH. The access is a write from SLICE to ARR if WRITE,
+ * or else it is a read from ARR to SLICE.
+ *
+ * SLICE_START is kept oblivious. */
+void o_slice(void *slice, void *arr, size_t length, size_t slice_start,
+        size_t slice_length, bool write, bool cond);
+
 LIBOBLIVIOUS_EXTERNC_END
 
 #endif /* liboblivious/primitives.h */
