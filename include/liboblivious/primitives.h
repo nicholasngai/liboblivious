@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 #include "liboblivious/internal/defs.h"
 
 LIBOBLIVIOUS_EXTERNC_BEGIN
@@ -12,23 +11,30 @@ static inline void o_setbool(bool *dest, bool src, bool cond) {
     *dest = *dest != ((src != *dest) & cond);
 }
 
-static inline void o_set8(uint8_t *dest, uint8_t src, bool cond) {
-    uint8_t mask = ~((uint8_t) cond - 1);
+static inline void o_setc(unsigned char *dest, unsigned char src, bool cond) {
+    unsigned char mask = ~((unsigned char) cond - 1);
     *dest ^= (src ^ *dest) & mask;
 }
 
-static inline void o_set16(uint16_t *dest, uint16_t src, bool cond) {
-    uint16_t mask = ~((uint16_t) cond - 1);
+static inline void o_setshrt(unsigned short *dest, unsigned short src,
+        bool cond) {
+    unsigned short mask = ~((unsigned short) cond - 1);
     *dest ^= (src ^ *dest) & mask;
 }
 
-static inline void o_set32(uint32_t *dest, uint32_t src, bool cond) {
-    uint32_t mask = ~((uint32_t) cond - 1);
+static inline void o_seti(unsigned int *dest, unsigned int src, bool cond) {
+    unsigned int mask = ~((unsigned int) cond - 1);
     *dest ^= (src ^ *dest) & mask;
 }
 
-static inline void o_set64(uint64_t *dest, uint64_t src, bool cond) {
-    uint64_t mask = ~((uint64_t) cond - 1);
+static inline void o_setl(unsigned long *dest, unsigned long src, bool cond) {
+    unsigned long mask = ~((unsigned long) cond - 1);
+    *dest ^= (src ^ *dest) & mask;
+}
+
+static inline void o_setll(unsigned long long *dest, unsigned long long src,
+        bool cond) {
+    unsigned long mask = ~((unsigned long) cond - 1);
     *dest ^= (src ^ *dest) & mask;
 }
 
@@ -38,33 +44,41 @@ static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
     *a = *a != (*a != *b);
 }
 
-static inline void o_swap8(uint8_t *restrict a, uint8_t *restrict b,
+static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
         bool cond) {
-    uint8_t mask = ~((uint8_t) cond - 1);
+    unsigned char mask = ~((unsigned char) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
 }
 
-static inline void o_swap16(uint16_t *restrict a, uint16_t *restrict b,
-        bool cond) {
-    uint16_t mask = ~((uint16_t) cond - 1);
+static inline void o_swapshrt(unsigned short *restrict a,
+        unsigned short *restrict b, bool cond) {
+    unsigned short mask = ~((unsigned short) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
 }
 
-static inline void o_swap32(uint32_t *restrict a, uint32_t *restrict b,
+static inline void o_swapi(unsigned int *restrict a, unsigned int *restrict b,
         bool cond) {
-    uint32_t mask = ~((uint32_t) cond - 1);
+    unsigned int mask = ~((unsigned int) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
 }
 
-static inline void o_swap64(uint64_t *restrict a, uint64_t *restrict b,
+static inline void o_swapl(unsigned long *restrict a, unsigned long *restrict b,
         bool cond) {
-    uint64_t mask = ~((uint64_t) cond - 1);
+    unsigned long mask = ~((unsigned long) cond - 1);
+    *a ^= *b;
+    *b ^= *a & mask;
+    *a ^= *b;
+}
+
+static inline void o_swapll(unsigned long long *restrict a,
+        unsigned long long *restrict b, bool cond) {
+    unsigned long long mask = ~((unsigned long long) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
@@ -77,38 +91,47 @@ static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
     *writep = *writep != (xor_val & write & cond);
 }
 
-static inline void o_access8(uint8_t *restrict readp,
-        uint8_t *restrict writep, bool write, bool cond) {
-    uint8_t mask = ~((uint8_t) cond - 1);
-    uint8_t read_mask = (uint8_t) write - 1;
-    uint8_t xor_val = *readp ^ *writep;
+static inline void o_accessc(unsigned char *restrict readp,
+        unsigned char *restrict writep, bool write, bool cond) {
+    unsigned char mask = ~((unsigned char) cond - 1);
+    unsigned char read_mask = (unsigned char) write - 1;
+    unsigned char xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
 }
 
-static inline void o_access16(uint16_t *restrict readp,
-        uint16_t *restrict writep, bool write, bool cond) {
-    uint16_t mask = ~((uint16_t) cond - 1);
-    uint16_t read_mask = (uint16_t) write - 1;
-    uint16_t xor_val = *readp ^ *writep;
+static inline void o_accessshrt(unsigned short *restrict readp,
+        unsigned short *restrict writep, bool write, bool cond) {
+    unsigned short mask = ~((unsigned short) cond - 1);
+    unsigned short read_mask = (unsigned short) write - 1;
+    unsigned short xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
 }
 
-static inline void o_access32(uint32_t *restrict readp,
-        uint32_t *restrict writep, bool write, bool cond) {
-    uint32_t mask = ~((uint32_t) cond - 1);
-    uint32_t read_mask = (uint32_t) write - 1;
-    uint32_t xor_val = *readp ^ *writep;
+static inline void o_accessi(unsigned int *restrict readp,
+        unsigned int *restrict writep, bool write, bool cond) {
+    unsigned int mask = ~((unsigned int) cond - 1);
+    unsigned int read_mask = (unsigned int) write - 1;
+    unsigned int xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
 }
 
-static inline void o_access64(uint64_t *restrict readp,
-        uint64_t *restrict writep, bool write, bool cond) {
-    uint64_t mask = ~((uint64_t) cond - 1);
-    uint64_t read_mask = (uint64_t) write - 1;
-    uint64_t xor_val = *readp ^ *writep;
+static inline void o_accessl(unsigned long *restrict readp,
+        unsigned long *restrict writep, bool write, bool cond) {
+    unsigned long mask = ~((unsigned long) cond - 1);
+    unsigned long read_mask = (unsigned long) write - 1;
+    unsigned long xor_val = *readp ^ *writep;
+    *readp ^= xor_val & read_mask & mask;
+    *writep ^= xor_val & ~read_mask & mask;
+}
+
+static inline void o_accessll(unsigned long long *restrict readp,
+        unsigned long long *restrict writep, bool write, bool cond) {
+    unsigned long long mask = ~((unsigned long long) cond - 1);
+    unsigned long long read_mask = (unsigned long long) write - 1;
+    unsigned long long xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
 }
@@ -137,73 +160,73 @@ void o_slice(void *slice, void *arr, size_t length, size_t slice_start,
 
 static inline int o_min(int a, int b) {
     int ret = a;
-    o_set32((unsigned int *) &ret, b, b < a);
+    o_seti((unsigned int *) &ret, b, b < a);
     return ret;
 }
 
 static inline long o_minl(long a, long b) {
     long ret = a;
-    o_set64((unsigned long *) &ret, b, b < a);
+    o_setl((unsigned long *) &ret, b, b < a);
     return ret;
 }
 
 static inline long long o_minll(long long a, long long b) {
     long long ret = a;
-    o_set64((unsigned long *) &ret, b, b < a);
+    o_setll((unsigned long long *) &ret, b, b < a);
     return ret;
 }
 
 static inline int o_minu(unsigned int a, unsigned int b) {
     unsigned int ret = a;
-    o_set32((unsigned int *) &ret, b, b < a);
+    o_seti(&ret, b, b < a);
     return ret;
 }
 
 static inline long o_minul(unsigned long a, unsigned long b) {
     unsigned long ret = a;
-    o_set64((unsigned long *) &ret, b, b < a);
+    o_setl(&ret, b, b < a);
     return ret;
 }
 
 static inline long long o_minull(unsigned long long a, unsigned long long b) {
     unsigned long long ret = a;
-    o_set64((unsigned long *) &ret, b, b < a);
+    o_setll(&ret, b, b < a);
     return ret;
 }
 
 static inline int o_max(int a, int b) {
     int ret = a;
-    o_set32((unsigned int *) &ret, b, b > a);
+    o_seti((unsigned int *) &ret, b, b > a);
     return ret;
 }
 
 static inline long o_maxl(long a, long b) {
     long ret = a;
-    o_set64((unsigned long *) &ret, b, b > a);
+    o_setl((unsigned long *) &ret, b, b > a);
     return ret;
 }
 
 static inline long long o_maxll(long long a, long long b) {
     long long ret = a;
-    o_set64((unsigned long *) &ret, b, b > a);
+    o_setll((unsigned long long *) &ret, b, b > a);
     return ret;
 }
 
 static inline int o_maxu(unsigned int a, unsigned int b) {
     unsigned int ret = a;
-    o_set32((unsigned int *) &ret, b, b > a);
+    o_seti(&ret, b, b > a);
     return ret;
 }
 
 static inline long o_maxul(unsigned long a, unsigned long b) {
     unsigned long ret = a;
-    o_set64((unsigned long *) &ret, b, b > a);
+    o_setl(&ret, b, b > a);
     return ret;
 }
 
 static inline long long o_maxull(unsigned long long a, unsigned long long b) {
     unsigned long long ret = a;
-    o_set64((unsigned long *) &ret, b, b > a);
+    o_setll(&ret, b, b > a);
     return ret;
 }
 

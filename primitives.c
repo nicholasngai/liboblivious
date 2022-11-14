@@ -1,32 +1,39 @@
 #include "liboblivious/primitives.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
-void *o_memcpy(void *restrict dest, const void *restrict src, size_t n, bool cond) {
+void *o_memcpy(void *restrict dest_, const void *restrict src_, size_t n,
+        bool cond) {
+    unsigned const char *restrict src = src_;
+    unsigned char *restrict dest = dest_;
     for (size_t i = 0; i < n; i++) {
-        o_set8((uint8_t *) dest + i, *((const uint8_t *) src + i), cond);
+        o_setc(&dest[i], src[i], cond);
     }
     return dest;
 }
 
-void *o_memset(void *dest, unsigned char c, size_t n, bool cond) {
+void *o_memset(void *dest_, unsigned char c, size_t n, bool cond) {
+    unsigned char *restrict dest = dest_;
     for (size_t i = 0; i < n; i++) {
-        o_set8((uint8_t *) dest + i, c, cond);
+        o_setc(&dest[i], c, cond);
     }
     return dest;
 }
 
-void o_memswap(void *restrict a, void *restrict b, size_t n, bool cond) {
+void o_memswap(void *restrict a_, void *restrict b_, size_t n, bool cond) {
+    unsigned char *restrict a = a_;
+    unsigned char *restrict b = b_;
     for (size_t i = 0; i < n; i++) {
-        o_swap8((uint8_t *) a + i, (uint8_t *) b + i, cond);
+        o_swapc(&a[i], &b[i], cond);
     }
 }
 
-void o_memaccess(void *restrict readp, void *restrict writep, size_t n,
+void o_memaccess(void *restrict readp_, void *restrict writep_, size_t n,
         bool write, bool cond) {
+    unsigned char *restrict readp = readp_;
+    unsigned char *restrict writep = writep_;
     for (size_t i = 0; i < n; i++) {
-        o_access8((uint8_t *) readp + i, (uint8_t *) writep + i, write, cond);
+        o_accessc(&readp[i], &writep[i], write, cond);
     }
 }
 

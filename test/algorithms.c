@@ -1,6 +1,5 @@
 #include "algorithms.h"
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include "liboblivious/algorithms.h"
 #include "common.h"
@@ -11,8 +10,8 @@ struct comparator_aux {
     bool reverse;
 };
 static int comparator(const void *a_, const void *b_, void *aux_) {
-    const uint64_t *a = a_;
-    const uint64_t *b = b_;
+    const unsigned long *a = a_;
+    const unsigned long *b = b_;
     struct comparator_aux *aux = aux_;
     int ret = *a < *b ? -1 : *a > *b ? 1 : 0;
     if (aux->reverse) {
@@ -24,7 +23,7 @@ static int comparator(const void *a_, const void *b_, void *aux_) {
 char *test_sort(void) {
     char *ret;
 
-    uint64_t *arr = malloc(SORT_SIZE * sizeof(uint64_t));
+    unsigned long *arr = malloc(SORT_SIZE * sizeof(unsigned long));
     if (!arr) {
         ret = "Malloc arr";
         goto exit;
@@ -59,9 +58,9 @@ exit:
 }
 
 static void swap(size_t a, size_t b, void *arr_) {
-    uint64_t *arr = arr_;
+    unsigned long *arr = arr_;
     if (arr[a] > arr[b]) {
-        uint64_t t = arr[a];
+        unsigned long t = arr[a];
         arr[a] = arr[b];
         arr[b] = t;
     }
@@ -70,7 +69,7 @@ static void swap(size_t a, size_t b, void *arr_) {
 char *test_sort_generate_swaps(void) {
     char *ret;
 
-    uint64_t *arr = malloc(SORT_SIZE * sizeof(uint64_t));
+    unsigned long *arr = malloc(SORT_SIZE * sizeof(unsigned long));
     if (!arr) {
         ret = "Malloc arr";
         goto exit;

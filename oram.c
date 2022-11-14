@@ -1,6 +1,7 @@
 #include "liboblivious/oram.h"
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "liboblivious/algorithms.h"
 #include "liboblivious/primitives.h"
@@ -103,7 +104,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
     size_t bucket_fullness[oram->depth];
 
     /* If this is a dummy access, choose a random leaf ID. */
-    o_set64(&leaf_id, rand_func() % 1u << (oram->depth - 1), !is_real_access);
+    o_setl(&leaf_id, rand_func() % 1u << (oram->depth - 1), !is_real_access);
 
     if (leaf_id >= 1u << (oram->depth - 1)) {
         /* Obliviousness violation - invalid leaf ID. */
@@ -144,7 +145,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
      * dummies if we have reached this point, so we skip it. The accessed
      * block gets assigned the new leaf. If this is a dummy access, start with
      * accessed == true to begin with and don't change anything. */
-    o_set64(new_leaf_id, rand_func() % (1u << (oram->depth - 1)),
+    o_setl(new_leaf_id, rand_func() % (1u << (oram->depth - 1)),
                 is_real_access);
     size_t new_leaf_idx_plus_one = *new_leaf_id + (1u << (oram->depth - 1));
     bool accessed = false;
@@ -154,7 +155,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         /* Access the block and set its new leaf if it was requested. */
         bool cond = (get_stash_block(oram, i)->block.id == block_id)
             & get_stash_block(oram, i)->block.valid & is_real_access;
-        o_set64(&get_stash_block(oram, i)->block.leaf_idx_plus_one,
+        o_setl(&get_stash_block(oram, i)->block.leaf_idx_plus_one,
                 new_leaf_idx_plus_one, cond);
         o_memaccess(data, get_stash_block(oram, i)->block.data,
                 oram->block_size, write, cond);
@@ -191,9 +192,9 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         while (bucket_idx_plus_one) {
             bool cond = !assigned & (bucket_idx_plus_one == curr_idx_plus_one)
                 & (bucket_fullness[bufu_idx] < oram->blocks_per_bucket);
-            o_set64(&get_stash_block(oram, i)->bucket_idx_plus_one,
+            o_setl(&get_stash_block(oram, i)->bucket_idx_plus_one,
                     bucket_idx_plus_one, cond);
-            o_set64(&bucket_fullness[bufu_idx], bucket_fullness[bufu_idx] + 1,
+            o_setl(&bucket_fullness[bufu_idx], bucket_fullness[bufu_idx] + 1,
                     cond);
             assigned |= cond;
             curr_idx_plus_one >>= 1;
@@ -211,7 +212,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         for (size_t i = 0; i < oram->blocks_per_bucket; i++) {
             bool cond = bucket_fullness[bufu_idx] + i < oram->blocks_per_bucket;
             get_stash_block(oram, stash_idx)->bucket_idx_plus_one = 0;
-            o_set64(&get_stash_block(oram, stash_idx)->bucket_idx_plus_one,
+            o_setl(&get_stash_block(oram, stash_idx)->bucket_idx_plus_one,
                     bucket_idx_plus_one, cond);
             stash_idx++;
         }
