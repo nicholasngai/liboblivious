@@ -241,7 +241,7 @@ int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data_,
     size_t num_page_accesses = CEIL_DIV(size - 1, OPAGEDMEM_PAGE_SIZE) + 1;
     for (size_t i = 0; i < num_page_accesses; i++) {
         uint64_t page_offset = addr & OPAGEDMEM_OFFSET_MASK;
-        size_t page_size = MIN(size, OPAGEDMEM_PAGE_SIZE - page_offset);
+        size_t page_size = o_minul(size, OPAGEDMEM_PAGE_SIZE - page_offset);
         bool page_is_real_access = is_real_access & (page_size > 0);
 
         ret =

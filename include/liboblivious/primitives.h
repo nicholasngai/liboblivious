@@ -135,6 +135,78 @@ void o_select(void *elem, void *arr, size_t length, size_t elem_size,
 void o_slice(void *slice, void *arr, size_t length, size_t slice_start,
         size_t slice_length, bool write, bool cond);
 
+static inline int o_min(int a, int b) {
+    int ret = a;
+    o_set32((unsigned int *) &ret, b, b < a);
+    return ret;
+}
+
+static inline long o_minl(long a, long b) {
+    long ret = a;
+    o_set64((unsigned long *) &ret, b, b < a);
+    return ret;
+}
+
+static inline long long o_minll(long long a, long long b) {
+    long long ret = a;
+    o_set64((unsigned long *) &ret, b, b < a);
+    return ret;
+}
+
+static inline int o_minu(unsigned int a, unsigned int b) {
+    unsigned int ret = a;
+    o_set32((unsigned int *) &ret, b, b < a);
+    return ret;
+}
+
+static inline long o_minul(unsigned long a, unsigned long b) {
+    unsigned long ret = a;
+    o_set64((unsigned long *) &ret, b, b < a);
+    return ret;
+}
+
+static inline long long o_minull(unsigned long long a, unsigned long long b) {
+    unsigned long long ret = a;
+    o_set64((unsigned long *) &ret, b, b < a);
+    return ret;
+}
+
+static inline int o_max(int a, int b) {
+    int ret = a;
+    o_set32((unsigned int *) &ret, b, b > a);
+    return ret;
+}
+
+static inline long o_maxl(long a, long b) {
+    long ret = a;
+    o_set64((unsigned long *) &ret, b, b > a);
+    return ret;
+}
+
+static inline long long o_maxll(long long a, long long b) {
+    long long ret = a;
+    o_set64((unsigned long *) &ret, b, b > a);
+    return ret;
+}
+
+static inline int o_maxu(unsigned int a, unsigned int b) {
+    unsigned int ret = a;
+    o_set32((unsigned int *) &ret, b, b > a);
+    return ret;
+}
+
+static inline long o_maxul(unsigned long a, unsigned long b) {
+    unsigned long ret = a;
+    o_set64((unsigned long *) &ret, b, b > a);
+    return ret;
+}
+
+static inline long long o_maxull(unsigned long long a, unsigned long long b) {
+    unsigned long long ret = a;
+    o_set64((unsigned long *) &ret, b, b > a);
+    return ret;
+}
+
 LIBOBLIVIOUS_EXTERNC_END
 
 #endif /* liboblivious/primitives.h */
