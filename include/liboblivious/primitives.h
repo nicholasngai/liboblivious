@@ -149,14 +149,17 @@ void o_memaccess(void *readp, void *writep, size_t n, bool write, bool cond);
 void o_select(void *elem, void *arr, size_t length, size_t elem_size,
         size_t index, bool write, bool cond);
 
-/* If COND, obliviously access the range of bytes starting at SLICE_START of
- * length SLICE_LENGTH in ARR, which is LENGTH bytes long, with SLICE, which has
- * size at least SLICE_LENGTH. The access is a write from SLICE to ARR if WRITE,
- * or else it is a read from ARR to SLICE.
+/* If COND, obliviously access the range of bytes starting at ARR_SLICE_START of
+ * length SLICE_LENGTH in ARR, which is ARR_LENGTH bytes long, with a range of
+ * starting at DATA_SLICE_START of length SLICE_LENGTh in DATA, which is
+ * DATA_LENGTH bytes long. The access is a write from SLICE to ARR if WRITE, or
+ * else it is a read from ARR to SLICE. SLICE_LENGTH <= DATA_SLICE_START <=
+ * ARR_SLICE_START.
  *
- * SLICE_START is kept oblivious. */
-void o_slice(void *slice, void *arr, size_t length, size_t slice_start,
-        size_t slice_length, bool write, bool cond);
+ * ARR_SLICE_START, DATA_SLICE_START, and SLICE_LENGTH are kept oblivious. */
+void o_slice(void *data, void *arr, size_t data_length, size_t arr_length,
+        size_t data_slice_start, size_t arr_slice_start, size_t slice_length,
+        bool write, bool cond);
 
 static inline int o_min(int a, int b) {
     int ret = a;

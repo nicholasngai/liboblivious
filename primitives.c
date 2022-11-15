@@ -46,10 +46,14 @@ void o_select(void *restrict elem, void *restrict arr_, size_t length,
     }
 }
 
-void o_slice(void *restrict slice_, void *restrict arr, size_t length,
-        size_t slice_start, size_t slice_length, bool write, bool cond) {
-    unsigned char *restrict slice = slice_;
-    for (size_t i = 0; i < slice_length; i++) {
-        o_select(&slice[i], arr, length, 1, slice_start + i, write, cond);
+void o_slice(void *restrict data_, void *restrict arr, size_t data_length,
+        size_t arr_length, size_t data_slice_start, size_t arr_slice_start,
+        size_t slice_length, bool write, bool cond) {
+    unsigned char *restrict data = data_;
+    for (size_t i = 0; i < data_length; i++) {
+        o_select(&data[i], arr, arr_length, 1,
+                i - data_slice_start + arr_slice_start, write,
+                (i >= data_slice_start) & (i < data_slice_start + slice_length)
+                    & cond);
     }
 }
