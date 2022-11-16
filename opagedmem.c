@@ -81,8 +81,9 @@ void opagedmem_destroy(opagedmem_t *opagedmem) {
 }
 
 static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
-        void *data, size_t size, bool write, struct opagedmem_entry *entry,
-        bool is_real_access, uint64_t (*random_func)(void)) {
+        void *data, size_t data_size, size_t slice_start, size_t slice_size,
+        bool write, struct opagedmem_entry *entry, bool is_real_access,
+        uint64_t (*random_func)(void)) {
     /* Zero out the memory in the buffer. */
     memset(opagedmem->data_buffer, '\0', OPAGEDMEM_PAGE_SIZE);
 
@@ -97,8 +98,8 @@ static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
     /* Perform the memory access. If this is a dummy set of accesses (read to a
      * non-allocated page), the zeros will be kept. */
     size_t offset = addr & OPAGEDMEM_OFFSET_MASK;
-    o_slice(data, opagedmem->data_buffer, size, OPAGEDMEM_PAGE_SIZE, 0, offset,
-            size, write, is_real_access);
+    o_slice(data, opagedmem->data_buffer, data_size, OPAGEDMEM_PAGE_SIZE,
+            slice_start, offset, slice_size, write, is_real_access);
 
     /* Write the page back to ORAM. Perform a dummy read if this is not a
      * write. */
@@ -120,9 +121,9 @@ exit:
  * IS_DUMMY is true, then this is a set of dummy accesses that ultimately won't
  * modify the page tables at all. */
 static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
-        size_t size, bool write, struct opagedmem_entry *table,
-        size_t num_entries, int level, bool is_real_access,
-        uint64_t (*random_func)(void)) {
+        size_t data_size, size_t slice_start, size_t slice_size, bool write,
+        struct opagedmem_entry *table, size_t num_entries, int level,
+        bool is_real_access, uint64_t (*random_func)(void)) {
     /* Compute the index in the table and find the table size. The if statement
      * depends only on the level, which is fixed. */
     size_t index;
@@ -166,9 +167,10 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
             return -1;
         }
 
-        if (access_level(opagedmem, addr, data, size, write,
-                    opagedmem->buffer[level].entries, OPAGEDMEM_MID_SIZE,
-                    level + 1, is_real_access, random_func)) {
+        if (access_level(opagedmem, addr, data, data_size, slice_start,
+                    slice_size, write, opagedmem->buffer[level].entries,
+                    OPAGEDMEM_MID_SIZE, level + 1, is_real_access,
+                    random_func)) {
             /* Obliviousness violation - access failed. */
             goto exit;
         }
@@ -181,8 +183,8 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
             goto exit;
         }
     } else {
-        if (access_last_level(opagedmem, addr, data, size, write, &entry,
-                    is_real_access, random_func)) {
+        if (access_last_level(opagedmem, addr, data, data_size, slice_start,
+                    slice_size, write, &entry, is_real_access, random_func)) {
             /* Obliviousness violation - access failed. */
             goto exit;
         }
@@ -213,9 +215,9 @@ int opagedmem_pageaccess(opagedmem_t *opagedmem, uint64_t addr, void *data,
     }
 
     /* Begin recursively accessing the table. */
-    if (access_level(opagedmem, addr, data, size, write,
-            opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, is_real_access,
-            random_func)) {
+    if (access_level(opagedmem, addr, data, size, 0, size, write,
+                opagedmem->first_level, OPAGEDMEM_FIRST_SIZE, 0, is_real_access,
+                random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
@@ -239,15 +241,20 @@ int opagedmem_access(opagedmem_t *opagedmem, uint64_t addr, void *data_,
     // 3 different second-level page tables, so we could optimize the access to
     // avoid the redundant accesess.
     size_t num_page_accesses = CEIL_DIV(size - 1, OPAGEDMEM_PAGE_SIZE) + 1;
+    size_t start_page = addr - (addr & OPAGEDMEM_OFFSET_MASK);
     for (size_t i = 0; i < num_page_accesses; i++) {
-        uint64_t page_offset = addr & OPAGEDMEM_OFFSET_MASK;
-        size_t page_size = o_minul(size, OPAGEDMEM_PAGE_SIZE - page_offset);
+        uint64_t page_start =
+            o_maxul(addr, start_page + i * OPAGEDMEM_PAGE_SIZE);
+        uint64_t page_end =
+            o_minul(addr + size, start_page + (i + 1) * OPAGEDMEM_PAGE_SIZE);
+        uint64_t page_size = 0;
+        o_setl(&page_size, page_end - page_start, page_end >= page_start);
         bool page_is_real_access = is_real_access & (page_size > 0);
 
         ret =
-            opagedmem_pageaccess(opagedmem,
-                addr - (addr & OPAGEDMEM_OFFSET_MASK) + page_offset, data,
-                page_size, write, page_is_real_access, random_func);
+            access_level(opagedmem, page_start, data, size, page_start - addr,
+                    page_size, write, opagedmem->first_level,
+                    OPAGEDMEM_FIRST_SIZE, 0, page_is_real_access, random_func);
         if (ret) {
             /* Obliviousness violation - page access failed. */
             goto exit;
