@@ -130,9 +130,9 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
     if (level == 0) {
         index = addr >> (64 - OPAGEDMEM_FIRST_BITS);
     } else {
-        index = (addr
-                >> (64 - OPAGEDMEM_FIRST_BITS
-                    - (level + 1) * OPAGEDMEM_MID_BITS))
+        index =
+            (addr
+                >> (64 - OPAGEDMEM_FIRST_BITS - level * OPAGEDMEM_MID_BITS))
             & OPAGEDMEM_MID_MASK;
     }
 
@@ -154,7 +154,7 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
     /* Access the next level. The if statement depends only on the number of
      * levels, which is fixed. These calls should also modify the leaf ID in
      * the entry as part of the ORAM scheme. */
-    if (level < OPAGEDMEM_MID_COUNT - 1) {
+    if (level < OPAGEDMEM_MID_COUNT) {
         /* Read the page table into the buffer. Start initialized to 0 in case
          * this is a new page. If the entry isn't valid, perform a dummy access
          * since there's nothing to read. */
