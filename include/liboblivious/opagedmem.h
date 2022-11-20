@@ -11,15 +11,15 @@
 #define OPAGEDMEM_ORAM_STASH_SIZE 160
 
 /* Page tables use a 14-5-5-5-5-5-5-5-5-10 split to implement a 64-bit address.
- * With 32 bytes per PTE, OPAGEDMEM_MID_BITS must be exactly 5 less than
+ * With 16 bytes per PTE, OPAGEDMEM_MID_BITS must be exactly 4 less than
  * OPAGEDMEM_OFFSET_BITS. */
-#define OPAGEDMEM_FIRST_BITS 14
+#define OPAGEDMEM_FIRST_BITS 12
 #define OPAGEDMEM_FIRST_SIZE (1u << OPAGEDMEM_FIRST_BITS)
 #define OPAGEDMEM_FIRST_MASK (OPAGEDMEM_FIRST_SIZE - 1)
-#define OPAGEDMEM_MID_BITS 5
+#define OPAGEDMEM_MID_BITS 6
 #define OPAGEDMEM_MID_SIZE (1u << OPAGEDMEM_MID_BITS)
 #define OPAGEDMEM_MID_MASK (OPAGEDMEM_MID_SIZE - 1)
-#define OPAGEDMEM_MID_COUNT 8
+#define OPAGEDMEM_MID_COUNT 7
 #define OPAGEDMEM_OFFSET_BITS 10
 #define OPAGEDMEM_PAGE_SIZE \
     (OPAGEDMEM_MID_SIZE * sizeof(struct opagedmem_entry))
@@ -28,10 +28,9 @@
 LIBOBLIVIOUS_EXTERNC_BEGIN
 
 struct opagedmem_entry {
-    uint64_t block_id;
     uint64_t leaf_id;
     bool valid;
-    unsigned char unused[15];
+    unsigned char unused[7];
 };
 
 struct opagedmem_table {
@@ -43,7 +42,6 @@ typedef struct opagedmem {
     struct opagedmem_entry *first_level;
     struct opagedmem_table *buffer;
     void *data_buffer;
-    uint64_t next_block_id;
 } opagedmem_t;
 
 int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes);

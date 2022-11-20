@@ -59,8 +59,6 @@ int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes) {
         goto exit_free_buffer;
     }
 
-    opagedmem->next_block_id = 0;
-
     return 0;
 
 exit_free_buffer:
@@ -80,6 +78,16 @@ void opagedmem_destroy(opagedmem_t *opagedmem) {
     free(opagedmem->data_buffer);
 }
 
+static uint64_t get_addr_block_id(uint64_t addr, int level) {
+    uint64_t mask =
+        ~((1lu <<
+                    (64
+                        - OPAGEDMEM_FIRST_BITS
+                        - (level - 1) * OPAGEDMEM_MID_BITS))
+                - 1);
+    return (addr & mask) | level;
+}
+
 static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
         void *data, size_t data_size, size_t slice_start, size_t slice_size,
         bool write, struct opagedmem_entry *entry, bool is_real_access,
@@ -88,9 +96,10 @@ static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
     memset(opagedmem->data_buffer, '\0', OPAGEDMEM_PAGE_SIZE);
 
     /* Read the page into the buffer. */
-    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
-                opagedmem->data_buffer, false, &entry->leaf_id, entry->valid,
-                random_func)) {
+    uint64_t block_id = get_addr_block_id(addr, OPAGEDMEM_MID_COUNT + 1);
+    if (oram_access(&opagedmem->oram, block_id, entry->leaf_id,
+                opagedmem->data_buffer, false, &entry->leaf_id,
+                entry->valid & is_real_access, random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
@@ -103,9 +112,9 @@ static int access_last_level(opagedmem_t *opagedmem, uint64_t addr,
 
     /* Write the page back to ORAM. Perform a dummy read if this is not a
      * write. */
-    if (oram_access(&opagedmem->oram, entry->block_id, entry->leaf_id,
+    if (oram_access(&opagedmem->oram, block_id, entry->leaf_id,
                 opagedmem->data_buffer, write, &entry->leaf_id,
-                write & is_real_access, random_func)) {
+                (entry->valid | write) & is_real_access, random_func)) {
         /* Obliviousness violation - access failed. */
         goto exit;
     }
@@ -136,16 +145,11 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
             & OPAGEDMEM_MID_MASK;
     }
 
-    /* Oblivious scan through the table. The block ID is iniitalized to the
-     * next available block ID, which will be used if this is a write. The leaf
-     * ID is initialized to a random value for a dummy access, which remains
-     * the value if the entry is invalid. */
+    /* Oblivious scan through the table. */
     struct opagedmem_entry entry = {
-        .block_id = opagedmem->next_block_id,
         .leaf_id = random_func() % (1u << (opagedmem->oram.depth - 1)),
         .valid = false,
     };
-    opagedmem->next_block_id++;
     for (size_t i = 0; i < num_entries; i++) {
         bool cond = (i == index) & is_real_access;
         o_memcpy(&entry, &table[i], sizeof(entry), cond & table[i].valid);
@@ -158,11 +162,12 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
         /* Read the page table into the buffer. Start initialized to 0 in case
          * this is a new page. If the entry isn't valid, perform a dummy access
          * since there's nothing to read. */
+        uint64_t block_id = get_addr_block_id(addr, level + 1);
         memset(&opagedmem->buffer[level], '\0',
                 sizeof(opagedmem->buffer[level]));
-        if (oram_access(&opagedmem->oram, entry.block_id, entry.leaf_id,
+        if (oram_access(&opagedmem->oram, block_id, entry.leaf_id,
                     &opagedmem->buffer[level], false, &entry.leaf_id,
-                    entry.valid, random_func)) {
+                    entry.valid & is_real_access, random_func)) {
             /* Obliviousness violation - access failed. */
             return -1;
         }
@@ -176,9 +181,9 @@ static int access_level(opagedmem_t *opagedmem, uint64_t addr, void *data,
         }
 
         /* Write the page table back to ORAM. */
-        if (oram_access(&opagedmem->oram, entry.block_id, entry.leaf_id,
+        if (oram_access(&opagedmem->oram, block_id, entry.leaf_id,
                     &opagedmem->buffer[level], true, &entry.leaf_id,
-                    write | entry.valid, random_func)) {
+                    (write | entry.valid) & is_real_access, random_func)) {
             /* Obliviousness violation - access failed. */
             goto exit;
         }
