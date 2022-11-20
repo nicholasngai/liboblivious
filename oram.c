@@ -104,7 +104,7 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
     size_t bucket_fullness[oram->depth];
 
     /* If this is a dummy access, choose a random leaf ID. */
-    o_setl(&leaf_id, rand_func() % 1u << (oram->depth - 1), !is_real_access);
+    o_setl(&leaf_id, rand_func() % (1u << (oram->depth - 1)), !is_real_access);
 
     if (leaf_id >= 1u << (oram->depth - 1)) {
         /* Obliviousness violation - invalid leaf ID. */
