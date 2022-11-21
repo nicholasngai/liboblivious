@@ -18,16 +18,15 @@ int opagedmem_init(opagedmem_t *opagedmem, size_t num_bytes) {
 
     /* Use OPAGEDMEM_ORAM_STASH_SIZE as the persistent stash size (which
      * doesn't depend on num_bytes) + log2(num_bytes / OPAGEDMEM_PAGE_SIZE) *
-     * OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET * 2 as the transient stash size (which
-     * depends on Z * log2(N)). The * 2 exists because the doubly oblivious
-     * sort for the stash requires double the stash size. */
+     * OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET the transient stash size (which
+     * depends on Z * log2(N)). */
     size_t oram_stash_size = 0;
     while ((1u << oram_stash_size) < num_blocks) {
         oram_stash_size++;
     }
     oram_stash_size =
         OPAGEDMEM_ORAM_STASH_SIZE
-            + oram_stash_size * OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET * 2;
+            + oram_stash_size * OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET;
 
     if (oram_init(&opagedmem->oram, OPAGEDMEM_PAGE_SIZE,
                 OPAGEDMEM_ORAM_BLOCKS_PER_BUCKET, num_blocks,

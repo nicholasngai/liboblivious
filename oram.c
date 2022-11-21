@@ -111,21 +111,27 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
         goto exit;
     }
 
-    /* Iterate from leaf to root, keeping track of whether the searched block
-     * was written and obliviously either writing to or reading from
-     * (o_memaccess) the data. We write to the end of the stash, where the
-     * dummy blocks should be, leaving enough space for a full path of dummy
-     * blocks plus one element before the end for padding the stash for the
-     * writeback proecdure and for a new write if the block was not found. */
+    /* We will eventually need to pad the last
+     * oram->depth * oram->blocks_per_bucket blocks with dummy blocks, and we
+     * also need 1 additional slot for a potential new write if the block isn't
+     * found, so we ensure that there is at least that much space at the end of
+     * the stash. All the dummy blocks other than the initial path are at the
+     * end, so it is sufficient to just check one element. */
 
-    size_t leaf_idx_plus_one = leaf_id + (1u << (oram->depth - 1));
-    size_t stash_idx =
-        oram->stash_size - 1 - oram->depth * oram->blocks_per_bucket * 2;
-
-    if (get_stash_block(oram, stash_idx)->block.valid) {
+    if (get_stash_block(oram, oram->stash_size - oram->depth * oram->blocks_per_bucket - 1)->block.valid) {
         /* Obliviousness violation - stash overflowed. */
         goto exit;
     }
+
+    /* Iterate from leaf to root, keeping track of whether the searched block
+     * was written and obliviously either writing to or reading from
+     * (o_memaccess) the data. We read the blocks into the beginning of the
+     * stash, since the first oram->depth * oram->blocks_per_bucket positions
+     * should contain the path of stash blocks that was evicted last time and
+     * are thus invalid. */
+
+    size_t leaf_idx_plus_one = leaf_id + (1u << (oram->depth - 1));
+    size_t stash_idx = 0;
 
     for (size_t bucket_idx_plus_one = leaf_idx_plus_one; bucket_idx_plus_one;
             bucket_idx_plus_one >>= 1) {
@@ -161,6 +167,8 @@ int oram_access(oram_t *oram, uint64_t block_id, uint64_t leaf_id, void *data,
                 oram->block_size, write, cond);
         accessed |= cond;
     }
+
+    stash_idx = oram->stash_size - oram->depth * oram->blocks_per_bucket - 1;
 
     /* Write to the next position in the stash iff this is a write, the desired
      * block was not accessed, and this is a real access, meaning this is a new
