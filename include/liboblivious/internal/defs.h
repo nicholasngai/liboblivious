@@ -13,4 +13,8 @@
 #define LIBOBLIVIOUS_EXTERNC
 #endif
 
+#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#define LIBOBLIVIOUS_CMOV
+#endif
+
 #endif

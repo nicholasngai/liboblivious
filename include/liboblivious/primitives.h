@@ -8,80 +8,202 @@
 LIBOBLIVIOUS_EXTERNC_BEGIN
 
 static inline void o_setbool(bool *dest, bool src, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int src_i = src;
+    unsigned int dest_i = *dest;
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*dest)
+            : "r,m" (src_i), "g,g" (cond)
+            : "flags");
+    *dest = dest_i;
+#else
     *dest = *dest != ((src != *dest) & cond);
+#endif
 }
 
 static inline void o_setc(unsigned char *dest, unsigned char src, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int src_i = src;
+    unsigned int dest_i = *dest;
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (dest_i)
+            : "r,m" ((unsigned int) src_i), "g,g" (cond)
+            : "flags");
+    *dest = dest_i;
+#else
     unsigned char mask = ~((unsigned char) cond - 1);
     *dest ^= (src ^ *dest) & mask;
+#endif
 }
 
 static inline void o_setshrt(unsigned short *dest, unsigned short src,
         bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*dest)
+            : "r,m" (src), "g,g" (cond)
+            : "flags");
+#else
     unsigned short mask = ~((unsigned short) cond - 1);
     *dest ^= (src ^ *dest) & mask;
+#endif
 }
 
 static inline void o_seti(unsigned int *dest, unsigned int src, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*dest)
+            : "r,m" (src), "g,g" (cond)
+            : "flags");
+#else
     unsigned int mask = ~((unsigned int) cond - 1);
     *dest ^= (src ^ *dest) & mask;
+#endif
 }
 
 static inline void o_setl(unsigned long *dest, unsigned long src, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*dest)
+            : "r,m" (src), "g,g" (cond)
+            : "flags");
+#else
     unsigned long mask = ~((unsigned long) cond - 1);
     *dest ^= (src ^ *dest) & mask;
+#endif
 }
 
 static inline void o_setll(unsigned long long *dest, unsigned long long src,
         bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*dest)
+            : "r,m" (src), "g,g" (cond)
+            : "flags");
+#else
     unsigned long mask = ~((unsigned long) cond - 1);
     *dest ^= (src ^ *dest) & mask;
+#endif
 }
 
 static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int a_i = *a;
+    unsigned int b_i = *b;
+    unsigned int temp = a_i;
+    __asm__ ("cmpb $0, %3;"
+            "cmova %1, %0;"
+            "cmova %2, %1;"
+            : "+&r,&r" (a_i), "+r,r" (b_i)
+            : "r,m" (temp), "g,g" (cond)
+            : "flags");
+    *a = a_i;
+    *b = b_i;
+#else
     *a = *a != (*a != *b);
     *b = *b != ((*a != *b) & cond);
     *a = *a != (*a != *b);
+#endif
 }
 
 static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
         bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int a_i = *a;
+    unsigned int b_i = *b;
+    unsigned int temp = a_i;
+    __asm__ ("cmpb $0, %3;"
+            "cmova %1, %0;"
+            "cmova %2, %1;"
+            : "+&r,&r" (a_i), "+r,r" (b_i)
+            : "r,m" (temp), "g,g" (cond)
+            : "flags");
+    *a = a_i;
+    *b = b_i;
+#else
     unsigned char mask = ~((unsigned char) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
+#endif
 }
 
 static inline void o_swapshrt(unsigned short *restrict a,
         unsigned short *restrict b, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned short temp = *a;
+    __asm__ ("cmpb $0, %3;"
+            "cmova %1, %0;"
+            "cmova %2, %1;"
+            : "+&r,&r" (*a), "+r,r" (*b)
+            : "r,m" (temp), "g,g" (cond)
+            : "flags");
+#else
     unsigned short mask = ~((unsigned short) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
+#endif
 }
 
 static inline void o_swapi(unsigned int *restrict a, unsigned int *restrict b,
         bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int temp = *a;
+    __asm__ ("cmpb $0, %3;"
+            "cmova %1, %0;"
+            "cmova %2, %1;"
+            : "+&r,&r" (*a), "+r,r" (*b)
+            : "r,m" (temp), "g,g" (cond)
+            : "flags");
+#else
     unsigned int mask = ~((unsigned int) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
+#endif
 }
 
 static inline void o_swapl(unsigned long *restrict a, unsigned long *restrict b,
         bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned long temp = *a;
+    __asm__ ("cmpb $0, %3;"
+            "cmova %1, %0;"
+            "cmova %2, %1;"
+            : "+&r,&r" (*a), "+r,r" (*b)
+            : "r,m" (temp), "g,g" (cond)
+            : "flags");
+#else
     unsigned long mask = ~((unsigned long) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
+#endif
 }
 
 static inline void o_swapll(unsigned long long *restrict a,
         unsigned long long *restrict b, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned long temp = *a;
+    __asm__ ("cmpb $0, %3;"
+            "cmova %1, %0;"
+            "cmova %2, %1;"
+            : "+&r,&r" (*a), "+r,r" (*b)
+            : "r,m" (temp), "g,g" (cond)
+            : "flags");
+#else
     unsigned long long mask = ~((unsigned long long) cond - 1);
     *a ^= *b;
     *b ^= *a & mask;
     *a ^= *b;
+#endif
 }
 
 static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
