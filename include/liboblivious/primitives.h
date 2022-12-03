@@ -136,18 +136,56 @@ static inline void o_accessll(unsigned long long *restrict readp,
     *writep ^= xor_val & ~read_mask & mask;
 }
 
-void *o_memcpy(void *dest, const void *src, size_t n, bool cond);
-void *o_memset(void *dest, unsigned char src, size_t n, bool cond);
-void o_memswap(void *a, void *b, size_t n, bool cond);
-void o_memaccess(void *readp, void *writep, size_t n, bool write, bool cond);
+static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
+        size_t n, bool cond) {
+    unsigned const char *restrict src = src_;
+    unsigned char *restrict dest = dest_;
+    for (size_t i = 0; i < n; i++) {
+        o_setc(&dest[i], src[i], cond);
+    }
+    return dest;
+}
+
+static inline void *o_memset(void *dest_, unsigned char c, size_t n,
+        bool cond) {
+    unsigned char *restrict dest = dest_;
+    for (size_t i = 0; i < n; i++) {
+        o_setc(&dest[i], c, cond);
+    }
+    return dest;
+}
+
+static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
+        bool cond) {
+    unsigned char *restrict a = a_;
+    unsigned char *restrict b = b_;
+    for (size_t i = 0; i < n; i++) {
+        o_swapc(&a[i], &b[i], cond);
+    }
+}
+
+static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
+        size_t n, bool write, bool cond) {
+    unsigned char *restrict readp = readp_;
+    unsigned char *restrict writep = writep_;
+    for (size_t i = 0; i < n; i++) {
+        o_accessc(&readp[i], &writep[i], write, cond);
+    }
+}
 
 /* If COND, obliviously access the item with index INDEX in SRC, which has
  * LENGTH items of size ELEM, with DEST, which has size ELEM_SIZE. The access is
  * a write from ELEM to ARR if WRITE, or else it is a read from ARR to ELEM.
  *
  * INDEX is kept oblivious. */
-void o_select(void *elem, void *arr, size_t length, size_t elem_size,
-        size_t index, bool write, bool cond);
+static inline void o_select(void *restrict elem, void *restrict arr_, size_t length,
+        size_t elem_size, size_t index, bool write, bool cond) {
+    unsigned char *restrict arr = arr_;
+    for (size_t i = 0; i < length; i++) {
+        o_memaccess(elem, arr + i * elem_size, elem_size, write,
+                (i == index) & cond);
+    }
+}
 
 /* If COND, obliviously access the range of bytes starting at ARR_SLICE_START of
  * length SLICE_LENGTH in ARR, which is ARR_LENGTH bytes long, with a range of
@@ -157,9 +195,17 @@ void o_select(void *elem, void *arr, size_t length, size_t elem_size,
  * ARR_SLICE_START.
  *
  * ARR_SLICE_START, DATA_SLICE_START, and SLICE_LENGTH are kept oblivious. */
-void o_slice(void *data, void *arr, size_t data_length, size_t arr_length,
-        size_t data_slice_start, size_t arr_slice_start, size_t slice_length,
-        bool write, bool cond);
+static inline void o_slice(void *restrict data_, void *restrict arr,
+        size_t data_length, size_t arr_length, size_t data_slice_start,
+        size_t arr_slice_start, size_t slice_length, bool write, bool cond) {
+    unsigned char *restrict data = data_;
+    for (size_t i = 0; i < data_length; i++) {
+        o_select(&data[i], arr, arr_length, 1,
+                i - data_slice_start + arr_slice_start, write,
+                (i >= data_slice_start) & (i < data_slice_start + slice_length)
+                    & cond);
+    }
+}
 
 static inline int o_min(int a, int b) {
     int ret = a;
