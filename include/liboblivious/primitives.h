@@ -208,54 +208,140 @@ static inline void o_swapll(unsigned long long *restrict a,
 
 static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
         bool write, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int read_i = *readp;
+    unsigned int write_i = *writep;
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (read_i)
+            : "r,m" (write_i), "g,g" (!write & cond)
+            : "flags");
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (write_i)
+            : "r,m" (read_i), "g,g" (write & cond)
+            : "flags");
+    *readp = read_i;
+    *writep = write_i;
+#else
     bool xor_val = *readp != *writep;
     *readp = *readp != (xor_val & !write & cond);
     *writep = *writep != (xor_val & write & cond);
+#endif
 }
 
 static inline void o_accessc(unsigned char *restrict readp,
         unsigned char *restrict writep, bool write, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned int read_i = *readp;
+    unsigned int write_i = *writep;
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (read_i)
+            : "r,m" (write_i), "g,g" (!write & cond)
+            : "flags");
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (write_i)
+            : "r,m" (read_i), "g,g" (write & cond)
+            : "flags");
+    *readp = read_i;
+    *writep = write_i;
+#else
     unsigned char mask = ~((unsigned char) cond - 1);
     unsigned char read_mask = (unsigned char) write - 1;
     unsigned char xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
+#endif
 }
 
 static inline void o_accessshrt(unsigned short *restrict readp,
         unsigned short *restrict writep, bool write, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*readp)
+            : "r,m" (*writep), "g,g" (!write & cond)
+            : "flags");
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*writep)
+            : "r,m" (*readp), "g,g" (write & cond)
+            : "flags");
+#else
     unsigned short mask = ~((unsigned short) cond - 1);
     unsigned short read_mask = (unsigned short) write - 1;
     unsigned short xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
+#endif
 }
 
 static inline void o_accessi(unsigned int *restrict readp,
         unsigned int *restrict writep, bool write, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*readp)
+            : "r,m" (*writep), "g,g" (!write & cond)
+            : "flags");
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*writep)
+            : "r,m" (*readp), "g,g" (write & cond)
+            : "flags");
+#else
     unsigned int mask = ~((unsigned int) cond - 1);
     unsigned int read_mask = (unsigned int) write - 1;
     unsigned int xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
+#endif
 }
 
 static inline void o_accessl(unsigned long *restrict readp,
         unsigned long *restrict writep, bool write, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*readp)
+            : "r,m" (*writep), "g,g" (!write & cond)
+            : "flags");
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*writep)
+            : "r,m" (*readp), "g,g" (write & cond)
+            : "flags");
+#else
     unsigned long mask = ~((unsigned long) cond - 1);
     unsigned long read_mask = (unsigned long) write - 1;
     unsigned long xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
+#endif
 }
 
 static inline void o_accessll(unsigned long long *restrict readp,
         unsigned long long *restrict writep, bool write, bool cond) {
+#ifdef LIBOBLIVIOUS_CMOV
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*readp)
+            : "r,m" (*writep), "g,g" (!write & cond)
+            : "flags");
+    __asm__ ("cmpb $0, %2;"
+            "cmova %1, %0;"
+            : "+r,r" (*writep)
+            : "r,m" (*readp), "g,g" (write & cond)
+            : "flags");
+#else
     unsigned long long mask = ~((unsigned long long) cond - 1);
     unsigned long long read_mask = (unsigned long long) write - 1;
     unsigned long long xor_val = *readp ^ *writep;
     *readp ^= xor_val & read_mask & mask;
     *writep ^= xor_val & ~read_mask & mask;
+#endif
 }
 
 void *o_memcpy(void *dest, const void *src, size_t n, bool cond);
