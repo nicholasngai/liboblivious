@@ -13,9 +13,9 @@ static inline void o_setbool(bool *dest, bool src, bool cond) {
     unsigned int src_i = src;
     unsigned int dest_i = *dest;
     __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (dest_i)
-            : "r,r,m,m" (src_i), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            : "+r" (dest_i)
+            : "rm" (src_i), "rm" (cond)
             : "flags");
     *dest = dest_i;
 #else
@@ -28,9 +28,9 @@ static inline void o_setc(unsigned char *dest, unsigned char src, bool cond) {
     unsigned int src_i = src;
     unsigned int dest_i = *dest;
     __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (dest_i)
-            : "r,r,m,m" ((unsigned int) src_i), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            : "+r" (dest_i)
+            : "rm" ((unsigned int) src_i), "rm" (cond)
             : "flags");
     *dest = dest_i;
 #else
@@ -43,10 +43,10 @@ static inline void o_setshrt(unsigned short *dest, unsigned short src,
         bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*dest)
-            : "r,r,m,m" (src), "r,m,r,m" (cond)
-            : "flags");
+            "cmovnz %1, %0;"
+            : "+r" (*dest)
+            : "rm" (src), "rm" (cond)
+            : "memory", "flags");
 #else
     unsigned short mask = ~((unsigned short) cond - 1);
     *dest ^= (src ^ *dest) & mask;
@@ -56,9 +56,9 @@ static inline void o_setshrt(unsigned short *dest, unsigned short src,
 static inline void o_seti(unsigned int *dest, unsigned int src, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*dest)
-            : "r,r,m,m" (src), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            : "+r" (*dest)
+            : "rm" (src), "rm" (cond)
             : "flags");
 #else
     unsigned int mask = ~((unsigned int) cond - 1);
@@ -69,9 +69,9 @@ static inline void o_seti(unsigned int *dest, unsigned int src, bool cond) {
 static inline void o_setl(unsigned long *dest, unsigned long src, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*dest)
-            : "r,r,m,m" (src), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            : "+r" (*dest)
+            : "rm" (src), "rm" (cond)
             : "flags");
 #else
     unsigned long mask = ~((unsigned long) cond - 1);
@@ -83,9 +83,9 @@ static inline void o_setll(unsigned long long *dest, unsigned long long src,
         bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*dest)
-            : "r,r,m,m" (src), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            : "+r" (*dest)
+            : "rm" (src), "rm" (cond)
             : "flags");
 #else
     unsigned long mask = ~((unsigned long) cond - 1);
@@ -99,10 +99,10 @@ static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
     unsigned int b_i = *b;
     unsigned int temp = a_i;
     __asm__ ("cmpb $0, %3;"
-            "cmova %1, %0;"
-            "cmova %2, %1;"
-            : "+&r,&r,&r,&r" (a_i), "+r,r,r,r" (b_i)
-            : "r,r,m,m" (temp), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            "cmovnz %2, %1;"
+            : "+&r" (a_i), "+r" (b_i)
+            : "rm" (temp), "rm" (cond)
             : "flags");
     *a = a_i;
     *b = b_i;
@@ -120,10 +120,10 @@ static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
     unsigned int b_i = *b;
     unsigned int temp = a_i;
     __asm__ ("cmpb $0, %3;"
-            "cmova %1, %0;"
-            "cmova %2, %1;"
-            : "+&r,&r,&r,&r" (a_i), "+r,r,r,r" (b_i)
-            : "r,r,m,m" (temp), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            "cmovnz %2, %1;"
+            : "+&r" (a_i), "+r" (b_i)
+            : "rm" (temp), "rm" (cond)
             : "flags");
     *a = a_i;
     *b = b_i;
@@ -140,10 +140,10 @@ static inline void o_swapshrt(unsigned short *restrict a,
 #ifdef LIBOBLIVIOUS_CMOV
     unsigned short temp = *a;
     __asm__ ("cmpb $0, %3;"
-            "cmova %1, %0;"
-            "cmova %2, %1;"
-            : "+&r,&r,&r,&r" (*a), "+r,r,r,r" (*b)
-            : "r,r,m,m" (temp), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            "cmovnz %2, %1;"
+            : "+&r" (*a), "+r" (*b)
+            : "rm" (temp), "rm" (cond)
             : "flags");
 #else
     unsigned short mask = ~((unsigned short) cond - 1);
@@ -158,10 +158,10 @@ static inline void o_swapi(unsigned int *restrict a, unsigned int *restrict b,
 #ifdef LIBOBLIVIOUS_CMOV
     unsigned int temp = *a;
     __asm__ ("cmpb $0, %3;"
-            "cmova %1, %0;"
-            "cmova %2, %1;"
-            : "+&r,&r,&r,&r" (*a), "+r,r,r,r" (*b)
-            : "r,r,m,m" (temp), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            "cmovnz %2, %1;"
+            : "+&r" (*a), "+r" (*b)
+            : "rm" (temp), "rm" (cond)
             : "flags");
 #else
     unsigned int mask = ~((unsigned int) cond - 1);
@@ -176,10 +176,10 @@ static inline void o_swapl(unsigned long *restrict a, unsigned long *restrict b,
 #ifdef LIBOBLIVIOUS_CMOV
     unsigned long temp = *a;
     __asm__ ("cmpb $0, %3;"
-            "cmova %1, %0;"
-            "cmova %2, %1;"
-            : "+&r,&r,&r,&r" (*a), "+r,r,r,r" (*b)
-            : "r,r,m,m" (temp), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            "cmovnz %2, %1;"
+            : "+&r" (*a), "+r" (*b)
+            : "rm" (temp), "rm" (cond)
             : "flags");
 #else
     unsigned long mask = ~((unsigned long) cond - 1);
@@ -194,10 +194,10 @@ static inline void o_swapll(unsigned long long *restrict a,
 #ifdef LIBOBLIVIOUS_CMOV
     unsigned long temp = *a;
     __asm__ ("cmpb $0, %3;"
-            "cmova %1, %0;"
-            "cmova %2, %1;"
-            : "+&r,&r,&r,&r" (*a), "+r,r,r,r" (*b)
-            : "r,r,m,m" (temp), "r,m,r,m" (cond)
+            "cmovnz %1, %0;"
+            "cmovnz %2, %1;"
+            : "+&r" (*a), "+r" (*b)
+            : "rm" (temp), "rm" (cond)
             : "flags");
 #else
     unsigned long long mask = ~((unsigned long long) cond - 1);
@@ -212,15 +212,12 @@ static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
 #ifdef LIBOBLIVIOUS_CMOV
     unsigned int read_i = *readp;
     unsigned int write_i = *writep;
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (read_i)
-            : "r,r,m,m" (write_i), "r,m,r,m" ((unsigned char) ((!write & cond)))
-            : "flags");
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (write_i)
-            : "r,r,m,m" (read_i), "r,m,r,m" ((unsigned char) (write & cond))
+    __asm__ ("cmpb %3, %2;"
+            "cmovl %1, %0;"
+            "testb %3, %2;"
+            "cmovnz %0, %1;"
+            : "+r,r" (read_i), "+r,r" (write_i)
+            : "r,rm" (write), "rm,r" (cond)
             : "flags");
     *readp = read_i;
     *writep = write_i;
@@ -236,15 +233,12 @@ static inline void o_accessc(unsigned char *restrict readp,
 #ifdef LIBOBLIVIOUS_CMOV
     unsigned int read_i = *readp;
     unsigned int write_i = *writep;
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (read_i)
-            : "r,r,m,m" (write_i), "r,m,r,m" ((unsigned char) ((!write & cond)))
-            : "flags");
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (write_i)
-            : "r,r,m,m" (read_i), "r,m,r,m" ((unsigned char) (write & cond))
+    __asm__ ("cmpb %3, %2;"
+            "cmovl %1, %0;"
+            "testb %3, %2;"
+            "cmovnz %0, %1;"
+            : "+r,r" (read_i), "+r,r" (write_i)
+            : "r,rm" (write), "rm,r" (cond)
             : "flags");
     *readp = read_i;
     *writep = write_i;
@@ -260,15 +254,12 @@ static inline void o_accessc(unsigned char *restrict readp,
 static inline void o_accessshrt(unsigned short *restrict readp,
         unsigned short *restrict writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*readp)
-            : "r,r,m,m" (*writep), "r,m,r,m" ((unsigned char) ((!write & cond)))
-            : "flags");
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*writep)
-            : "r,r,m,m" (*readp), "r,m,r,m" ((unsigned char) (write & cond))
+    __asm__ ("cmpb %3, %2;"
+            "cmovl %1, %0;"
+            "testb %3, %2;"
+            "cmovnz %0, %1;"
+            : "+r,r" (readp), "+r,r" (writep)
+            : "r,rm" (write), "rm,r" (cond)
             : "flags");
 #else
     unsigned short mask = ~((unsigned short) cond - 1);
@@ -282,15 +273,12 @@ static inline void o_accessshrt(unsigned short *restrict readp,
 static inline void o_accessi(unsigned int *restrict readp,
         unsigned int *restrict writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*readp)
-            : "r,r,m,m" (*writep), "r,m,r,m" ((unsigned char) ((!write & cond)))
-            : "flags");
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*writep)
-            : "r,r,m,m" (*readp), "r,m,r,m" ((unsigned char) (write & cond))
+    __asm__ ("cmpb %3, %2;"
+            "cmovl %1, %0;"
+            "testb %3, %2;"
+            "cmovnz %0, %1;"
+            : "+r,r" (readp), "+r,r" (writep)
+            : "r,rm" (write), "rm,r" (cond)
             : "flags");
 #else
     unsigned int mask = ~((unsigned int) cond - 1);
@@ -304,15 +292,12 @@ static inline void o_accessi(unsigned int *restrict readp,
 static inline void o_accessl(unsigned long *restrict readp,
         unsigned long *restrict writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*readp)
-            : "r,r,m,m" (*writep), "r,m,r,m" ((unsigned char) ((!write & cond)))
-            : "flags");
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*writep)
-            : "r,r,m,m" (*readp), "r,m,r,m" ((unsigned char) (write & cond))
+    __asm__ ("cmpb %3, %2;"
+            "cmovl %1, %0;"
+            "testb %3, %2;"
+            "cmovnz %0, %1;"
+            : "+r,r" (readp), "+r,r" (writep)
+            : "r,rm" (write), "rm,r" (cond)
             : "flags");
 #else
     unsigned long mask = ~((unsigned long) cond - 1);
@@ -326,15 +311,12 @@ static inline void o_accessl(unsigned long *restrict readp,
 static inline void o_accessll(unsigned long long *restrict readp,
         unsigned long long *restrict writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*readp)
-            : "r,r,m,m" (*writep), "r,m,r,m" ((unsigned char) ((!write & cond)))
-            : "flags");
-    __asm__ ("cmpb $0, %2;"
-            "cmova %1, %0;"
-            : "+r,r,r,r" (*writep)
-            : "r,r,m,m" (*readp), "r,m,r,m" ((unsigned char) (write & cond))
+    __asm__ ("cmpb %3, %2;"
+            "cmovl %1, %0;"
+            "testb %3, %2;"
+            "cmovnz %0, %1;"
+            : "+r,r" (readp), "+r,r" (writep)
+            : "r,rm" (write), "rm,r" (cond)
             : "flags");
 #else
     unsigned long long mask = ~((unsigned long long) cond - 1);
@@ -350,30 +332,15 @@ static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
     unsigned const char *restrict src = src_;
     unsigned char *restrict dest = dest_;
 
-    while (n >= sizeof(unsigned long long)) {
-        o_setll((unsigned long long *) dest,
-                *((const unsigned long long *) src), cond);
-        src += sizeof(unsigned long long);
-        dest += sizeof(unsigned long long);
-        n -= sizeof(unsigned long long);
+#ifdef LIBOBLIVIOUS_CMOV
+    while (n % sizeof(unsigned short)) {
+        o_setc(dest, *src, cond);
+        src += sizeof(unsigned char);
+        dest += sizeof(unsigned char);
+        n -= sizeof(unsigned char);
     }
 
-    while (n >= sizeof(unsigned long)) {
-        o_setl((unsigned long *) dest, *((const unsigned long *) src),
-                cond);
-        src += sizeof(unsigned long);
-        dest += sizeof(unsigned long);
-        n -= sizeof(unsigned long);
-    }
-
-    while (n >= sizeof(unsigned int)) {
-        o_seti((unsigned int *) dest, *((const unsigned int *) src), cond);
-        src += sizeof(unsigned int);
-        dest += sizeof(unsigned int);
-        n -= sizeof(unsigned int);
-    }
-
-    while (n >= sizeof(unsigned short)) {
+    while (n % sizeof(unsigned int)) {
         o_setshrt((unsigned short *) dest, *((const unsigned short *) src),
                 cond);
         src += sizeof(unsigned short);
@@ -381,60 +348,129 @@ static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
         n -= sizeof(unsigned short);
     }
 
-    while (n >= sizeof(unsigned char)) {
-        o_setc(dest, *src, cond);
-        src += sizeof(unsigned char);
-        dest += sizeof(unsigned char);
-        n -= sizeof(unsigned char);
+    while (n % sizeof(unsigned long)) {
+        o_seti((unsigned int *) dest, *((const unsigned int *) src), cond);
+        src += sizeof(unsigned int);
+        dest += sizeof(unsigned int);
+        n -= sizeof(unsigned int);
     }
 
-    return dest;
+    while (n / sizeof(unsigned long) % 4) {
+        o_setl((unsigned long *) dest, *((const unsigned long *) src), cond);
+        src += sizeof(unsigned long);
+        dest += sizeof(unsigned long);
+        n -= sizeof(unsigned long);
+    }
+
+    if (n > 0) {
+        register unsigned long t0;
+        register unsigned long t1;
+        register unsigned long t2;
+        register unsigned long t3;
+        __asm__ __volatile__ ("0:"
+                "cmpb $0, %7;"
+                "mov (%0), %3;"
+                "mov %c8(%0), %4;"
+                "mov %c9(%0), %5;"
+                "mov %c10(%0), %6;"
+                "cmovnz (%1), %3;"
+                "cmovnz %c8(%1), %4;"
+                "cmovnz %c9(%1), %5;"
+                "cmovnz %c10(%1), %6;"
+                "mov %3, (%0);"
+                "mov %4, %c8(%0);"
+                "mov %5, %c9(%0);"
+                "mov %6, %c10(%0);"
+                "add %11, %0;"
+                "add %11, %1;"
+                "sub %11, %2;"
+                "jnz 0b;"
+                : "+r" (dest), "+r" (src), "+rm" (n), "=&r" (t0), "=&r" (t1),
+                    "=&r" (t2), "=&r" (t3)
+                : "rm" (cond), "i" (sizeof(unsigned long)),
+                    "i" (sizeof(unsigned long) * 2),
+                    "i" (sizeof(unsigned long) * 3),
+                    "i" (sizeof(unsigned long) * 4)
+                : "memory", "flags");
+    }
+#else
+    for (size_t i = 0; i < n; i++) {
+        o_setc(&dest[i], src[i], cond);
+    }
+#endif
+
+    return dest_;
 }
 
 static inline void *o_memset(void *dest_, unsigned char c, size_t n,
         bool cond) {
     unsigned char *restrict dest = dest_;
 
-    unsigned long long ll;
-    unsigned long l;
-    unsigned int i;
-    unsigned short shrt;
-    memset(&ll, c, sizeof(ll));
-    memset(&l, c, sizeof(l));
-    memset(&i, c, sizeof(i));
-    memset(&shrt, c, sizeof(shrt));
+#ifdef LIBOBLIVIOUS_CMOV
+    unsigned long cl;
+    memset(&cl, c, sizeof(cl));
 
-    while (n >= sizeof(unsigned long long)) {
-        o_setll((unsigned long long *) dest, ll, cond);
-        dest += sizeof(unsigned long long);
-        n -= sizeof(unsigned long long);
-    }
-
-    while (n >= sizeof(unsigned long)) {
-        o_setl((unsigned long *) dest, l, cond);
-        dest += sizeof(unsigned long);
-        n -= sizeof(unsigned long);
-    }
-
-    while (n >= sizeof(unsigned int)) {
-        o_seti((unsigned int *) dest, i, cond);
-        dest += sizeof(unsigned int);
-        n -= sizeof(unsigned int);
-    }
-
-    while (n >= sizeof(unsigned short)) {
-        o_setshrt((unsigned short *) dest, shrt, cond);
-        dest += sizeof(unsigned short);
-        n -= sizeof(unsigned short);
-    }
-
-    while (n >= sizeof(unsigned char)) {
-        o_setc(dest, c, cond);
+    while (n % sizeof(unsigned short)) {
+        o_setc(dest, cl, cond);
         dest += sizeof(unsigned char);
         n -= sizeof(unsigned char);
     }
 
-    return dest;
+    while (n % sizeof(unsigned int)) {
+        o_setshrt((unsigned short *) dest, cl, cond);
+        dest += sizeof(unsigned short);
+        n -= sizeof(unsigned short);
+    }
+
+    while (n % sizeof(unsigned long)) {
+        o_seti((unsigned int *) dest, cl, cond);
+        dest += sizeof(unsigned int);
+        n -= sizeof(unsigned int);
+    }
+
+    while (n / sizeof(unsigned long) % 4) {
+        o_setl((unsigned long *) dest, cl, cond);
+        dest += sizeof(unsigned long);
+        n -= sizeof(unsigned long);
+    }
+
+    if (n > 0) {
+        register unsigned long t0;
+        register unsigned long t1;
+        register unsigned long t2;
+        register unsigned long t3;
+        __asm__ __volatile__ ("0:"
+                "cmpb $0, %7;"
+                "mov (%0), %2;"
+                "mov %c8(%0), %3;"
+                "mov %c9(%0), %4;"
+                "mov %c10(%0), %5;"
+                "cmovnz %6, %2;"
+                "cmovnz %6, %3;"
+                "cmovnz %6, %4;"
+                "cmovnz %6, %5;"
+                "mov %2, (%0);"
+                "mov %3, %c8(%0);"
+                "mov %4, %c9(%0);"
+                "mov %5, %c10(%0);"
+                "add %11, %0;"
+                "sub %11, %1;"
+                "jnz 0b;"
+                : "+r" (dest), "+rm" (n), "=&r" (t0), "=&r" (t1), "=&r" (t2),
+                    "=&r" (t3)
+                : "r" (cl), "rm" (cond), "i" (sizeof(unsigned long)),
+                    "i" (sizeof(unsigned long) * 2),
+                    "i" (sizeof(unsigned long) * 3),
+                    "i" (sizeof(unsigned long) * 4)
+                : "memory", "flags");
+    }
+#else
+    for (size_t i = 0; i < n; i++) {
+        o_setc(&dest[i], c, cond);
+    }
+#endif
+
+    return dest_;
 }
 
 static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
@@ -442,40 +478,69 @@ static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
     unsigned char *restrict a = a_;
     unsigned char *restrict b = b_;
 
-    while (n >= sizeof(unsigned long long)) {
-        o_swapll((unsigned long long *) b, (unsigned long long *) a, cond);
-        a += sizeof(unsigned long long);
-        b += sizeof(unsigned long long);
-        n -= sizeof(unsigned long long);
+#ifdef LIBOBLIVIOUS_CMOV
+    while (n % sizeof(unsigned short)) {
+        o_swapc(a, b, cond);
+        a += sizeof(unsigned char);
+        b += sizeof(unsigned char);
+        n -= sizeof(unsigned char);
     }
 
-    while (n >= sizeof(unsigned long)) {
-        o_swapl((unsigned long *) b, (unsigned long *) a, cond);
-        a += sizeof(unsigned long);
-        b += sizeof(unsigned long);
-        n -= sizeof(unsigned long);
-    }
-
-    while (n >= sizeof(unsigned int)) {
-        o_swapi((unsigned int *) b, (unsigned int *) a, cond);
-        a += sizeof(unsigned int);
-        b += sizeof(unsigned int);
-        n -= sizeof(unsigned int);
-    }
-
-    while (n >= sizeof(unsigned short)) {
-        o_swapshrt((unsigned short *) b, (unsigned short *) a, cond);
+    while (n % sizeof(unsigned int)) {
+        o_swapshrt((unsigned short *) a, (unsigned short *) b, cond);
         a += sizeof(unsigned short);
         b += sizeof(unsigned short);
         n -= sizeof(unsigned short);
     }
 
-    while (n >= sizeof(unsigned char)) {
-        o_swapc(b, a, cond);
-        a += sizeof(unsigned char);
-        b += sizeof(unsigned char);
-        n -= sizeof(unsigned char);
+    while (n % sizeof(unsigned long)) {
+        o_swapi((unsigned int *) a, (unsigned int *) b, cond);
+        a += sizeof(unsigned int);
+        b += sizeof(unsigned int);
+        n -= sizeof(unsigned int);
     }
+
+    while (n / sizeof(unsigned long) % 2) {
+        o_swapl((unsigned long *) a, (unsigned long *) b, cond);
+        a += sizeof(unsigned long);
+        b += sizeof(unsigned long);
+        n -= sizeof(unsigned long);
+    }
+
+    if (n) {
+        register unsigned long t0;
+        register unsigned long t1;
+        register unsigned long t2;
+        register unsigned long t3;
+        __asm__ __volatile__ ("0:"
+                "cmpb $0, %7;"
+                "mov (%0), %3;"
+                "mov %c8(%0), %4;"
+                "mov (%1), %5;"
+                "mov %c8(%1), %6;"
+                "cmovnz (%1), %3;"
+                "cmovnz %c8(%1), %4;"
+                "cmovnz (%0), %5;"
+                "cmovnz %c8(%0), %6;"
+                "mov %3, (%0);"
+                "mov %4, %c8(%0);"
+                "mov %5, (%1);"
+                "mov %6, %c8(%1);"
+                "add %9, %0;"
+                "add %9, %1;"
+                "sub %9, %2;"
+                "jnz 0b;"
+                : "+r" (a), "+r" (b), "+rm" (n), "=&r" (t0), "=&r" (t1), "=&r" (t2),
+                    "=&r" (t3)
+                : "rm" (cond), "i" (sizeof(unsigned long)),
+                    "i" (sizeof(unsigned long) * 2)
+                : "memory", "flags");
+    }
+#else
+    for (size_t i = 0; i < n; i++) {
+        o_swapc(&a[i], &b[i], cond);
+    }
+#endif
 }
 
 static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
@@ -483,30 +548,15 @@ static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
     unsigned char *restrict readp = readp_;
     unsigned char *restrict writep = writep_;
 
-    while (n >= sizeof(unsigned long long)) {
-        o_accessll((unsigned long long *) readp, (unsigned long long *) writep,
-                write, cond);
-        readp += sizeof(unsigned long long);
-        writep += sizeof(unsigned long long);
-        n -= sizeof(unsigned long long);
+#ifdef LIBOBLIVIOUS_CMOV
+    while (n % sizeof(unsigned short)) {
+        o_accessc(readp, writep, write, cond);
+        readp += sizeof(unsigned char);
+        writep += sizeof(unsigned char);
+        n -= sizeof(unsigned char);
     }
 
-    while (n >= sizeof(unsigned long)) {
-        o_accessl((unsigned long *) readp, (unsigned long *) writep, write,
-                cond);
-        readp += sizeof(unsigned long);
-        writep += sizeof(unsigned long);
-        n -= sizeof(unsigned long);
-    }
-
-    while (n >= sizeof(unsigned int)) {
-        o_accessi((unsigned int *) readp, (unsigned int *) writep, write, cond);
-        readp += sizeof(unsigned int);
-        writep += sizeof(unsigned int);
-        n -= sizeof(unsigned int);
-    }
-
-    while (n >= sizeof(unsigned short)) {
+    while (n % sizeof(unsigned int)) {
         o_accessshrt((unsigned short *) readp, (unsigned short *) writep, write,
                 cond);
         readp += sizeof(unsigned short);
@@ -514,12 +564,79 @@ static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
         n -= sizeof(unsigned short);
     }
 
-    while (n >= sizeof(unsigned char)) {
-        o_accessc(readp, writep, write, cond);
-        readp += sizeof(unsigned char);
-        writep += sizeof(unsigned char);
-        n -= sizeof(unsigned char);
+    while (n % sizeof(unsigned long)) {
+        o_accessi((unsigned int *) readp, (unsigned int *) writep, write, cond);
+        readp += sizeof(unsigned int);
+        writep += sizeof(unsigned int);
+        n -= sizeof(unsigned int);
     }
+
+    while (n / sizeof(unsigned long) % 2) {
+        o_accessl((unsigned long *) readp, (unsigned long *) writep, write,
+                cond);
+        readp += sizeof(unsigned long);
+        writep += sizeof(unsigned long);
+        n -= sizeof(unsigned long);
+    }
+
+    if (n) {
+#ifdef __x86_64__
+        register unsigned long t0;
+        register unsigned long t1;
+        register unsigned long t2;
+        register unsigned long t3;
+        __asm__ __volatile__ ("0:"
+                "mov (%0), %3;"
+                "mov %c9(%0), %4;"
+                "mov (%1), %5;"
+                "mov %c9(%1), %6;"
+                "cmp %8, %7;"
+                "cmovl %5, %3;"
+                "cmovl %6, %4;"
+                "test %8, %7;"
+                "cmovnz %3, %5;"
+                "cmovnz %4, %6;"
+                "mov %3, (%0);"
+                "mov %4, %c9(%0);"
+                "mov %5, (%1);"
+                "mov %6, %c9(%1);"
+                "add %10, %0;"
+                "add %10, %1;"
+                "sub %10, %2;"
+                "jnz 0b;"
+                : "+r" (readp), "+r" (writep), "+r" (n), "=&r" (t0), "=&r" (t1),
+                    "=&r" (t2), "=&r" (t3)
+                : "rm" ((unsigned char) write), "rm" ((unsigned char) cond),
+                    "i" (sizeof(unsigned long)), "i" (sizeof(unsigned long) * 2)
+                : "memory", "flags");
+#else
+        register unsigned long t0;
+        register unsigned long t1;
+        __asm__ __volatile__ ("0:"
+                "mov (%0), %3;"
+                "mov (%1), %4;"
+                "cmp %6, %5;"
+                "cmovl %4, %3;"
+                "test %6, %5;"
+                "cmovnz %3, %4;"
+                "mov %3, (%0);"
+                "mov %4, (%1);"
+                "add %7, %0;"
+                "add %7, %1;"
+                "sub %7, %2;"
+                "jnz 0b;"
+                : "+r" (readp), "+r" (writep), "+r" (n),
+                    "=&r" (t0), "=&r" (t1)
+                : "rm" ((unsigned char) write), "rm" ((unsigned char) cond),
+                    "i" (sizeof(unsigned long))
+                : "memory", "flags");
+#endif
+    }
+#else
+    for (size_t i = 0; i < n; i++) {
+        o_accessc(&readp[i], &writep[i], write, cond);
+    }
+#endif
 }
 
 /* If COND, obliviously access the item with index INDEX in SRC, which has
