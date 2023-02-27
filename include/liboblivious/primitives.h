@@ -10,6 +10,13 @@ LIBOBLIVIOUS_EXTERNC_BEGIN
 
 static inline void o_setbool(bool *dest, bool src, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            *dest = src;
+        }
+        return;
+    }
+
     unsigned int src_i = src;
     unsigned int dest_i = *dest;
     __asm__ ("cmpb $0, %2;"
@@ -25,6 +32,13 @@ static inline void o_setbool(bool *dest, bool src, bool cond) {
 
 static inline void o_setc(unsigned char *dest, unsigned char src, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            *dest = src;
+        }
+        return;
+    }
+
     unsigned int src_i = src;
     unsigned int dest_i = *dest;
     __asm__ ("cmpb $0, %2;"
@@ -42,6 +56,13 @@ static inline void o_setc(unsigned char *dest, unsigned char src, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
 #define LIBOBLIVIOUS_DEF_SET_T(NAME, T) \
     static inline void NAME(T *dest, T src, bool cond) {\
+        if (__builtin_constant_p(cond)) {\
+            if (cond) {\
+                *dest = src;\
+            }\
+            return;\
+        }\
+    \
         __asm__ ("cmpb $0, %2;"\
                 "cmovnz %1, %0;"\
                 : "+r" (*dest)\
@@ -63,6 +84,15 @@ LIBOBLIVIOUS_DEF_SET_T(o_setll, unsigned long long)
 
 static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            bool t = *a;
+            *a = *b;
+            *b = t;
+        }
+        return;
+    }
+
     unsigned int a_i = *a;
     unsigned int b_i = *b;
     unsigned int temp = a_i;
@@ -84,6 +114,15 @@ static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
 static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
         bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            unsigned int t = *a;
+            *a = *b;
+            *b = t;
+        }
+        return;
+    }
+
     unsigned int a_i = *a;
     unsigned int b_i = *b;
     unsigned int temp = a_i;
@@ -106,6 +145,15 @@ static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
 #ifdef LIBOBLIVIOUS_CMOV
 #define LIBOBLIVIOUS_DEF_SWAP_T(NAME, T) \
     static inline void NAME(T *restrict a, T *restrict b, bool cond) {\
+        if (__builtin_constant_p(cond)) {\
+            if (cond) {\
+                unsigned int t = *a;\
+                *a = *b;\
+                *b = t;\
+            }\
+            return;\
+        }\
+    \
         T temp = *a;\
         __asm__ ("cmpb $0, %3;"\
                 "cmovnz %1, %0;"\
@@ -132,6 +180,17 @@ LIBOBLIVIOUS_DEF_SWAP_T(o_swapll, unsigned long long)
 static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
         bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {
+        if (cond) {
+            if (write) {
+                *writep = *readp;
+            } else {
+                *readp = *writep;
+            }
+        }
+        return;
+    }
+
     unsigned int read_i = *readp;
     unsigned int write_i = *writep;
     __asm__ ("cmpb %3, %2;"
@@ -153,6 +212,17 @@ static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
 static inline void o_accessc(unsigned char *restrict readp,
         unsigned char *restrict writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {
+        if (cond) {
+            if (write) {
+                *writep = *readp;
+            } else {
+                *readp = *writep;
+            }
+        }
+        return;
+    }
+
     unsigned int read_i = *readp;
     unsigned int write_i = *writep;
     __asm__ ("cmpb %3, %2;"
@@ -177,6 +247,17 @@ static inline void o_accessc(unsigned char *restrict readp,
 #define LIBOBLIVIOUS_DEF_ACCESS_T(NAME, T) \
     static inline void NAME(T *restrict readp, T *restrict writep, bool write,\
             bool cond) {\
+        if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {\
+            if (cond) {\
+                if (write) {\
+                    *writep = *readp;\
+                } else {\
+                    *readp = *writep;\
+                }\
+            }\
+            return;\
+        }\
+    \
         __asm__ ("cmpb %3, %2;"\
                 "cmovl %1, %0;"\
                 "testb %3, %2;"\
@@ -208,6 +289,13 @@ static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
     unsigned char *restrict dest = dest_;
 
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            memcpy(dest, src, n);
+        }
+        return dest;
+    }
+
     while (n % sizeof(unsigned short)) {
         o_setc(dest, *src, cond);
         src += sizeof(unsigned char);
@@ -282,6 +370,13 @@ static inline void *o_memset(void *dest_, unsigned char c, size_t n,
     unsigned char *restrict dest = dest_;
 
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            memset(dest, c, n);
+        }
+        return dest;
+    }
+
     unsigned long cl;
     memset(&cl, c, sizeof(cl));
 
@@ -354,6 +449,22 @@ static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
     unsigned char *restrict b = b_;
 
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond)) {
+        if (cond) {
+            unsigned char buf[128];
+            while (n) {
+                size_t bytes_to_swap = n < 128 ? n : 128;
+                memcpy(buf, a, bytes_to_swap);
+                memcpy(a, b, bytes_to_swap);
+                memcpy(b, buf, bytes_to_swap);
+                a += bytes_to_swap;
+                b += bytes_to_swap;
+                n -= bytes_to_swap;
+            }
+        }
+        return;
+    }
+
     while (n % sizeof(unsigned short)) {
         o_swapc(a, b, cond);
         a += sizeof(unsigned char);
@@ -424,6 +535,17 @@ static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
     unsigned char *restrict writep = writep_;
 
 #ifdef LIBOBLIVIOUS_CMOV
+    if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {
+        if (cond) {
+            if (write) {
+                memcpy(writep, readp, n);
+            } else {
+                memcpy(readp, writep, n);
+            }
+        }
+        return;
+    }
+
     while (n % sizeof(unsigned short)) {
         o_accessc(readp, writep, write, cond);
         readp += sizeof(unsigned char);
