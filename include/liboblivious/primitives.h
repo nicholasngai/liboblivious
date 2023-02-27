@@ -39,59 +39,27 @@ static inline void o_setc(unsigned char *dest, unsigned char src, bool cond) {
 #endif
 }
 
-static inline void o_setshrt(unsigned short *dest, unsigned short src,
-        bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmovnz %1, %0;"
-            : "+r" (*dest)
-            : "rm" (src), "rm" (cond)
-            : "memory", "flags");
+#define LIBOBLIVIOUS_DEF_SET_T(NAME, T) \
+    static inline void NAME(T *dest, T src, bool cond) {\
+        __asm__ ("cmpb $0, %2;"\
+                "cmovnz %1, %0;"\
+                : "+r" (*dest)\
+                : "rm" (src), "rm" (cond)\
+                : "memory", "flags");\
+    }
 #else
-    unsigned short mask = ~((unsigned short) cond - 1);
-    *dest ^= (src ^ *dest) & mask;
+#define LIBOBLIVIOUS_DEF_SET_T(NAME, T) \
+    static inline void NAME(T *dest, T src, bool cond) {\
+        T mask = ~((T) cond - 1);\
+        *dest ^= (src ^ *dest) & mask;\
+    }
 #endif
-}
 
-static inline void o_seti(unsigned int *dest, unsigned int src, bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmovnz %1, %0;"
-            : "+r" (*dest)
-            : "rm" (src), "rm" (cond)
-            : "flags");
-#else
-    unsigned int mask = ~((unsigned int) cond - 1);
-    *dest ^= (src ^ *dest) & mask;
-#endif
-}
-
-static inline void o_setl(unsigned long *dest, unsigned long src, bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmovnz %1, %0;"
-            : "+r" (*dest)
-            : "rm" (src), "rm" (cond)
-            : "flags");
-#else
-    unsigned long mask = ~((unsigned long) cond - 1);
-    *dest ^= (src ^ *dest) & mask;
-#endif
-}
-
-static inline void o_setll(unsigned long long *dest, unsigned long long src,
-        bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb $0, %2;"
-            "cmovnz %1, %0;"
-            : "+r" (*dest)
-            : "rm" (src), "rm" (cond)
-            : "flags");
-#else
-    unsigned long mask = ~((unsigned long) cond - 1);
-    *dest ^= (src ^ *dest) & mask;
-#endif
-}
+LIBOBLIVIOUS_DEF_SET_T(o_setshrt, unsigned short)
+LIBOBLIVIOUS_DEF_SET_T(o_seti, unsigned int)
+LIBOBLIVIOUS_DEF_SET_T(o_setl, unsigned long)
+LIBOBLIVIOUS_DEF_SET_T(o_setll, unsigned long long)
 
 static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
@@ -135,77 +103,31 @@ static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
 #endif
 }
 
-static inline void o_swapshrt(unsigned short *restrict a,
-        unsigned short *restrict b, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    unsigned short temp = *a;
-    __asm__ ("cmpb $0, %3;"
-            "cmovnz %1, %0;"
-            "cmovnz %2, %1;"
-            : "+&r" (*a), "+r" (*b)
-            : "rm" (temp), "rm" (cond)
-            : "flags");
+#define LIBOBLIVIOUS_DEF_SWAP_T(NAME, T) \
+    static inline void NAME(T *restrict a, T *restrict b, bool cond) {\
+        T temp = *a;\
+        __asm__ ("cmpb $0, %3;"\
+                "cmovnz %1, %0;"\
+                "cmovnz %2, %1;"\
+                : "+&r" (*a), "+r" (*b)\
+                : "rm" (temp), "rm" (cond)\
+                : "flags");\
+    }
 #else
-    unsigned short mask = ~((unsigned short) cond - 1);
-    *a ^= *b;
-    *b ^= *a & mask;
-    *a ^= *b;
+#define LIBOBLIVIOUS_DEF_SWAP_T(NAME, T) \
+    static inline void NAME(T *a, T *b, bool cond) {\
+        T mask = ~((T) cond - 1);\
+        *a ^= *b;\
+        *b ^= *a & mask;\
+        *a ^= *b;\
+    }
 #endif
-}
 
-static inline void o_swapi(unsigned int *restrict a, unsigned int *restrict b,
-        bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    unsigned int temp = *a;
-    __asm__ ("cmpb $0, %3;"
-            "cmovnz %1, %0;"
-            "cmovnz %2, %1;"
-            : "+&r" (*a), "+r" (*b)
-            : "rm" (temp), "rm" (cond)
-            : "flags");
-#else
-    unsigned int mask = ~((unsigned int) cond - 1);
-    *a ^= *b;
-    *b ^= *a & mask;
-    *a ^= *b;
-#endif
-}
-
-static inline void o_swapl(unsigned long *restrict a, unsigned long *restrict b,
-        bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    unsigned long temp = *a;
-    __asm__ ("cmpb $0, %3;"
-            "cmovnz %1, %0;"
-            "cmovnz %2, %1;"
-            : "+&r" (*a), "+r" (*b)
-            : "rm" (temp), "rm" (cond)
-            : "flags");
-#else
-    unsigned long mask = ~((unsigned long) cond - 1);
-    *a ^= *b;
-    *b ^= *a & mask;
-    *a ^= *b;
-#endif
-}
-
-static inline void o_swapll(unsigned long long *restrict a,
-        unsigned long long *restrict b, bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    unsigned long temp = *a;
-    __asm__ ("cmpb $0, %3;"
-            "cmovnz %1, %0;"
-            "cmovnz %2, %1;"
-            : "+&r" (*a), "+r" (*b)
-            : "rm" (temp), "rm" (cond)
-            : "flags");
-#else
-    unsigned long long mask = ~((unsigned long long) cond - 1);
-    *a ^= *b;
-    *b ^= *a & mask;
-    *a ^= *b;
-#endif
-}
+LIBOBLIVIOUS_DEF_SWAP_T(o_swapshrt, unsigned short)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swapi, unsigned int)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swapl, unsigned long)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swapll, unsigned long long)
 
 static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
         bool write, bool cond) {
@@ -251,81 +173,34 @@ static inline void o_accessc(unsigned char *restrict readp,
 #endif
 }
 
-static inline void o_accessshrt(unsigned short *restrict readp,
-        unsigned short *restrict writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb %3, %2;"
-            "cmovl %1, %0;"
-            "testb %3, %2;"
-            "cmovnz %0, %1;"
-            : "+r,r" (readp), "+r,r" (writep)
-            : "r,rm" (write), "rm,r" (cond)
-            : "flags");
+#define LIBOBLIVIOUS_DEF_ACCESS_T(NAME, T) \
+    static inline void NAME(T *restrict readp, T *restrict writep, bool write,\
+            bool cond) {\
+        __asm__ ("cmpb %3, %2;"\
+                "cmovl %1, %0;"\
+                "testb %3, %2;"\
+                "cmovnz %0, %1;"\
+                : "+r,r" (readp), "+r,r" (writep)\
+                : "r,rm" (write), "rm,r" (cond)\
+                : "flags");\
+    }
 #else
-    unsigned short mask = ~((unsigned short) cond - 1);
-    unsigned short read_mask = (unsigned short) write - 1;
-    unsigned short xor_val = *readp ^ *writep;
-    *readp ^= xor_val & read_mask & mask;
-    *writep ^= xor_val & ~read_mask & mask;
+#define LIBOBLIVIOUS_DEF_ACCESS_T(NAME, T) \
+    static inline void NAME(T *restrict readp, T *restrict writep, bool write,\
+            bool cond) {\
+        T mask = ~((T) cond - 1);\
+        T read_mask = (T) write - 1;\
+        T xor_val = *readp ^ *writep;\
+        *readp ^= xor_val & read_mask & mask;\
+        *writep ^= xor_val & ~read_mask & mask;\
+    }
 #endif
-}
 
-static inline void o_accessi(unsigned int *restrict readp,
-        unsigned int *restrict writep, bool write, bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb %3, %2;"
-            "cmovl %1, %0;"
-            "testb %3, %2;"
-            "cmovnz %0, %1;"
-            : "+r,r" (readp), "+r,r" (writep)
-            : "r,rm" (write), "rm,r" (cond)
-            : "flags");
-#else
-    unsigned int mask = ~((unsigned int) cond - 1);
-    unsigned int read_mask = (unsigned int) write - 1;
-    unsigned int xor_val = *readp ^ *writep;
-    *readp ^= xor_val & read_mask & mask;
-    *writep ^= xor_val & ~read_mask & mask;
-#endif
-}
-
-static inline void o_accessl(unsigned long *restrict readp,
-        unsigned long *restrict writep, bool write, bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb %3, %2;"
-            "cmovl %1, %0;"
-            "testb %3, %2;"
-            "cmovnz %0, %1;"
-            : "+r,r" (readp), "+r,r" (writep)
-            : "r,rm" (write), "rm,r" (cond)
-            : "flags");
-#else
-    unsigned long mask = ~((unsigned long) cond - 1);
-    unsigned long read_mask = (unsigned long) write - 1;
-    unsigned long xor_val = *readp ^ *writep;
-    *readp ^= xor_val & read_mask & mask;
-    *writep ^= xor_val & ~read_mask & mask;
-#endif
-}
-
-static inline void o_accessll(unsigned long long *restrict readp,
-        unsigned long long *restrict writep, bool write, bool cond) {
-#ifdef LIBOBLIVIOUS_CMOV
-    __asm__ ("cmpb %3, %2;"
-            "cmovl %1, %0;"
-            "testb %3, %2;"
-            "cmovnz %0, %1;"
-            : "+r,r" (readp), "+r,r" (writep)
-            : "r,rm" (write), "rm,r" (cond)
-            : "flags");
-#else
-    unsigned long long mask = ~((unsigned long long) cond - 1);
-    unsigned long long read_mask = (unsigned long long) write - 1;
-    unsigned long long xor_val = *readp ^ *writep;
-    *readp ^= xor_val & read_mask & mask;
-    *writep ^= xor_val & ~read_mask & mask;
-#endif
-}
+LIBOBLIVIOUS_DEF_ACCESS_T(o_accessshrt, unsigned short)
+LIBOBLIVIOUS_DEF_ACCESS_T(o_accessi, unsigned int)
+LIBOBLIVIOUS_DEF_ACCESS_T(o_accessl, unsigned long)
+LIBOBLIVIOUS_DEF_ACCESS_T(o_accessll, unsigned long long)
 
 static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
         size_t n, bool cond) {
