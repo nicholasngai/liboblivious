@@ -13,8 +13,10 @@
 #define LIBOBLIVIOUS_EXTERNC
 #endif
 
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
-#define LIBOBLIVIOUS_CMOV
+#ifdef LIBOBLIVIOUS_CMOV
+#if !defined(__GNUC__) || (!defined(__x86_64__) && !defined(__i386__))
+#error "CMOV not available on this platform!"
+#endif
 #endif
 
 #endif
