@@ -335,6 +335,7 @@ static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
     }
 
     if (n > 0) {
+        size_t iters = n / (sizeof(unsigned long) * 4);
         register unsigned long t0;
         register unsigned long t1;
         register unsigned long t2;
@@ -355,10 +356,10 @@ static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
                 "mov %6, %c10(%0);"
                 "add %11, %0;"
                 "add %11, %1;"
-                "sub %11, %2;"
+                "dec %2;"
                 "jnz 0b;"
-                : "+r" (dest), "+r" (src), "+rm" (n), "=&r" (t0), "=&r" (t1),
-                    "=&r" (t2), "=&r" (t3)
+                : "+r" (dest), "+r" (src), "+rm" (iters), "=&r" (t0),
+                    "=&r" (t1), "=&r" (t2), "=&r" (t3)
                 : "rm" (cond), "i" (sizeof(unsigned long)),
                     "i" (sizeof(unsigned long) * 2),
                     "i" (sizeof(unsigned long) * 3),
@@ -414,6 +415,7 @@ static inline void *o_memset(void *dest_, unsigned char c, size_t n,
     }
 
     if (n > 0) {
+        size_t iters = n / (sizeof(unsigned long) * 4);
         register unsigned long t0;
         register unsigned long t1;
         register unsigned long t2;
@@ -433,10 +435,10 @@ static inline void *o_memset(void *dest_, unsigned char c, size_t n,
                 "mov %4, %c9(%0);"
                 "mov %5, %c10(%0);"
                 "add %11, %0;"
-                "sub %11, %1;"
+                "dec %1;"
                 "jnz 0b;"
-                : "+r" (dest), "+rm" (n), "=&r" (t0), "=&r" (t1), "=&r" (t2),
-                    "=&r" (t3)
+                : "+r" (dest), "+rm" (iters), "=&r" (t0), "=&r" (t1),
+                    "=&r" (t2), "=&r" (t3)
                 : "r" (cl), "rm" (cond), "i" (sizeof(unsigned long)),
                     "i" (sizeof(unsigned long) * 2),
                     "i" (sizeof(unsigned long) * 3),
@@ -503,30 +505,35 @@ static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
     }
 
     if (n) {
+        size_t iters = n / (sizeof(unsigned long) * 2);
         register unsigned long t0;
         register unsigned long t1;
         register unsigned long t2;
         register unsigned long t3;
+        register unsigned long t4;
+        register unsigned long t5;
         __asm__ __volatile__ ("0:"
-                "cmpb $0, %7;"
+                "cmpb $0, %9;"
                 "mov (%0), %3;"
-                "mov %c8(%0), %4;"
+                "mov (%0), %7;"
+                "mov %c10(%0), %4;"
+                "mov %c10(%0), %8;"
                 "mov (%1), %5;"
-                "mov %c8(%1), %6;"
-                "cmovnz (%1), %3;"
-                "cmovnz %c8(%1), %4;"
-                "cmovnz (%0), %5;"
-                "cmovnz %c8(%0), %6;"
+                "mov %c10(%1), %6;"
+                "cmovnz %5, %3;"
+                "cmovnz %6, %4;"
+                "cmovnz %7, %5;"
+                "cmovnz %8, %6;"
                 "mov %3, (%0);"
-                "mov %4, %c8(%0);"
+                "mov %4, %c10(%0);"
                 "mov %5, (%1);"
-                "mov %6, %c8(%1);"
-                "add %9, %0;"
-                "add %9, %1;"
-                "sub %9, %2;"
+                "mov %6, %c10(%1);"
+                "add %11, %0;"
+                "add %11, %1;"
+                "dec %2;"
                 "jnz 0b;"
-                : "+r" (a), "+r" (b), "+rm" (n), "=&r" (t0), "=&r" (t1), "=&r" (t2),
-                    "=&r" (t3)
+                : "+r" (a), "+r" (b), "+rm" (iters), "=&r" (t0), "=&r" (t1),
+                    "=&r" (t2), "=&r" (t3), "=&r" (t4), "=&r" (t5)
                 : "rm" (cond), "i" (sizeof(unsigned long)),
                     "i" (sizeof(unsigned long) * 2)
                 : "memory", "flags");
@@ -587,6 +594,7 @@ static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
 
     if (n) {
 #ifdef __x86_64__
+        size_t iters = n / (sizeof(unsigned long) * 2);
         register unsigned long t0;
         register unsigned long t1;
         register unsigned long t2;
@@ -608,10 +616,10 @@ static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
                 "mov %6, %c9(%1);"
                 "add %10, %0;"
                 "add %10, %1;"
-                "sub %10, %2;"
+                "dec %2;"
                 "jnz 0b;"
-                : "+r" (readp), "+r" (writep), "+r" (n), "=&r" (t0), "=&r" (t1),
-                    "=&r" (t2), "=&r" (t3)
+                : "+r" (readp), "+r" (writep), "+r" (iters), "=&r" (t0),
+                    "=&r" (t1), "=&r" (t2), "=&r" (t3)
                 : "rm" ((unsigned char) write), "rm" ((unsigned char) cond),
                     "i" (sizeof(unsigned long)), "i" (sizeof(unsigned long) * 2)
                 : "memory", "flags");
