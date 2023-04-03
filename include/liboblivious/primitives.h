@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "liboblivious/internal/defs.h"
 
@@ -81,6 +82,10 @@ LIBOBLIVIOUS_DEF_SET_T(o_setshrt, unsigned short)
 LIBOBLIVIOUS_DEF_SET_T(o_seti, unsigned int)
 LIBOBLIVIOUS_DEF_SET_T(o_setl, unsigned long)
 LIBOBLIVIOUS_DEF_SET_T(o_setll, unsigned long long)
+LIBOBLIVIOUS_DEF_SET_T(o_set16, uint16_t)
+LIBOBLIVIOUS_DEF_SET_T(o_set32, uint32_t)
+LIBOBLIVIOUS_DEF_SET_T(o_set64, uint64_t)
+LIBOBLIVIOUS_DEF_SET_T(o_setsize, size_t)
 
 static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
@@ -176,6 +181,10 @@ LIBOBLIVIOUS_DEF_SWAP_T(o_swapshrt, unsigned short)
 LIBOBLIVIOUS_DEF_SWAP_T(o_swapi, unsigned int)
 LIBOBLIVIOUS_DEF_SWAP_T(o_swapl, unsigned long)
 LIBOBLIVIOUS_DEF_SWAP_T(o_swapll, unsigned long long)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swap16, uint16_t)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swap32, uint32_t)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swap64, uint64_t)
+LIBOBLIVIOUS_DEF_SWAP_T(o_swapsize, size_t)
 
 static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
         bool write, bool cond) {
