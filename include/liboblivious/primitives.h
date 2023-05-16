@@ -87,7 +87,8 @@ LIBOBLIVIOUS_DEF_SET_T(o_set32, uint32_t)
 LIBOBLIVIOUS_DEF_SET_T(o_set64, uint64_t)
 LIBOBLIVIOUS_DEF_SET_T(o_setsize, size_t)
 
-static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
+static inline void o_swapbool(bool *LIBOBLIVIOUS_RESTRICT a,
+        bool *LIBOBLIVIOUS_RESTRICT b, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond)) {
         if (cond) {
@@ -116,8 +117,8 @@ static inline void o_swapbool(bool *restrict a, bool *restrict b, bool cond) {
 #endif
 }
 
-static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
-        bool cond) {
+static inline void o_swapc(unsigned char *LIBOBLIVIOUS_RESTRICT a,
+        unsigned char *LIBOBLIVIOUS_RESTRICT b, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond)) {
         if (cond) {
@@ -149,7 +150,8 @@ static inline void o_swapc(unsigned char *restrict a, unsigned char *restrict b,
 
 #ifdef LIBOBLIVIOUS_CMOV
 #define LIBOBLIVIOUS_DEF_SWAP_T(NAME, T) \
-    static inline void NAME(T *restrict a, T *restrict b, bool cond) {\
+    static inline void NAME(T *LIBOBLIVIOUS_RESTRICT a,\
+            T *LIBOBLIVIOUS_RESTRICT b, bool cond) {\
         if (__builtin_constant_p(cond)) {\
             if (cond) {\
                 unsigned int t = *a;\
@@ -186,8 +188,8 @@ LIBOBLIVIOUS_DEF_SWAP_T(o_swap32, uint32_t)
 LIBOBLIVIOUS_DEF_SWAP_T(o_swap64, uint64_t)
 LIBOBLIVIOUS_DEF_SWAP_T(o_swapsize, size_t)
 
-static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
-        bool write, bool cond) {
+static inline void o_accessbool(bool *LIBOBLIVIOUS_RESTRICT readp,
+        bool *LIBOBLIVIOUS_RESTRICT writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {
         if (cond) {
@@ -218,8 +220,8 @@ static inline void o_accessbool(bool *restrict readp, bool *restrict writep,
 #endif
 }
 
-static inline void o_accessc(unsigned char *restrict readp,
-        unsigned char *restrict writep, bool write, bool cond) {
+static inline void o_accessc(unsigned char *LIBOBLIVIOUS_RESTRICT readp,
+        unsigned char *LIBOBLIVIOUS_RESTRICT writep, bool write, bool cond) {
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {
         if (cond) {
@@ -277,7 +279,8 @@ static inline void o_accessc(unsigned char *restrict readp,
     }
 #else
 #define LIBOBLIVIOUS_DEF_ACCESS_T(NAME, T) \
-    static inline void NAME(T *restrict readp, T *restrict writep, bool write,\
+    static inline void NAME(T *LIBOBLIVIOUS_RESTRICT readp,\
+            T *LIBOBLIVIOUS_RESTRICT writep, bool write,\
             bool cond) {\
         T mask = ~((T) cond - 1);\
         T read_mask = (T) write - 1;\
@@ -292,10 +295,11 @@ LIBOBLIVIOUS_DEF_ACCESS_T(o_accessi, unsigned int)
 LIBOBLIVIOUS_DEF_ACCESS_T(o_accessl, unsigned long)
 LIBOBLIVIOUS_DEF_ACCESS_T(o_accessll, unsigned long long)
 
-static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
-        size_t n, bool cond) {
-    unsigned const char *restrict src = src_;
-    unsigned char *restrict dest = dest_;
+static inline void *o_memcpy(void *LIBOBLIVIOUS_RESTRICT dest_,
+        const void *LIBOBLIVIOUS_RESTRICT src_, size_t n, bool cond) {
+    const unsigned char *LIBOBLIVIOUS_RESTRICT src =
+        (const unsigned char *) src_;
+    unsigned char *LIBOBLIVIOUS_RESTRICT dest = (unsigned char *) dest_;
 
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond)) {
@@ -377,7 +381,7 @@ static inline void *o_memcpy(void *restrict dest_, const void *restrict src_,
 
 static inline void *o_memset(void *dest_, unsigned char c, size_t n,
         bool cond) {
-    unsigned char *restrict dest = dest_;
+    unsigned char *dest = (unsigned char *) dest_;
 
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond)) {
@@ -454,10 +458,10 @@ static inline void *o_memset(void *dest_, unsigned char c, size_t n,
     return dest_;
 }
 
-static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
+static inline void o_memswap(void *LIBOBLIVIOUS_RESTRICT a_, void *LIBOBLIVIOUS_RESTRICT b_, size_t n,
         bool cond) {
-    unsigned char *restrict a = a_;
-    unsigned char *restrict b = b_;
+    unsigned char *LIBOBLIVIOUS_RESTRICT a = (unsigned char *) a_;
+    unsigned char *LIBOBLIVIOUS_RESTRICT b = (unsigned char *) b_;
 
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond)) {
@@ -545,10 +549,10 @@ static inline void o_memswap(void *restrict a_, void *restrict b_, size_t n,
 #endif
 }
 
-static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
+static inline void o_memaccess(void *LIBOBLIVIOUS_RESTRICT readp_, void *LIBOBLIVIOUS_RESTRICT writep_,
         size_t n, bool write, bool cond) {
-    unsigned char *restrict readp = readp_;
-    unsigned char *restrict writep = writep_;
+    unsigned char *LIBOBLIVIOUS_RESTRICT readp = (unsigned char *) readp_;
+    unsigned char *LIBOBLIVIOUS_RESTRICT writep = (unsigned char *) writep_;
 
 #ifdef LIBOBLIVIOUS_CMOV
     if (__builtin_constant_p(cond) && __builtin_constant_p(write)) {
@@ -658,9 +662,10 @@ static inline void o_memaccess(void *restrict readp_, void *restrict writep_,
  * a write from ELEM to ARR if WRITE, or else it is a read from ARR to ELEM.
  *
  * INDEX is kept oblivious. */
-static inline void o_select(void *restrict elem, void *restrict arr_,
-        size_t length, size_t elem_size, size_t index, bool write, bool cond) {
-    unsigned char *restrict arr = arr_;
+static inline void o_select(void *LIBOBLIVIOUS_RESTRICT elem,
+        void *LIBOBLIVIOUS_RESTRICT arr_, size_t length, size_t elem_size,
+        size_t index, bool write, bool cond) {
+    unsigned char *LIBOBLIVIOUS_RESTRICT arr = (unsigned char *) arr_;
     for (size_t i = 0; i < length; i++) {
         o_memaccess(elem, arr + i * elem_size, elem_size, write,
                 (i == index) & cond);
@@ -675,10 +680,11 @@ static inline void o_select(void *restrict elem, void *restrict arr_,
  * ARR_SLICE_START.
  *
  * ARR_SLICE_START, DATA_SLICE_START, and SLICE_LENGTH are kept oblivious. */
-static inline void o_slice(void *restrict data_, void *restrict arr,
-        size_t data_length, size_t arr_length, size_t data_slice_start,
-        size_t arr_slice_start, size_t slice_length, bool write, bool cond) {
-    unsigned char *restrict data = data_;
+static inline void o_slice(void *LIBOBLIVIOUS_RESTRICT data_,
+        void *LIBOBLIVIOUS_RESTRICT arr, size_t data_length, size_t arr_length,
+        size_t data_slice_start, size_t arr_slice_start, size_t slice_length,
+        bool write, bool cond) {
+    unsigned char *LIBOBLIVIOUS_RESTRICT data = (unsigned char *) data_;
     for (size_t i = 0; i < data_length; i++) {
         o_select(&data[i], arr, arr_length, 1,
                 i - data_slice_start + arr_slice_start, write,
